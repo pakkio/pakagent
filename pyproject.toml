@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "pakagent"
+version = "0.1.0"
+description = "Modular pakdiff workflow system with LLM integration"
+authors = ["pakkio"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "3.12.3"
+python-dotenv = "^1.1.0"
+requests = "^2.32.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
