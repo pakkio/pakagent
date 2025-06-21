@@ -361,6 +361,7 @@ SECTION: GLOBAL_PREAMBLE
 UNTIL_EXCLUDE: def load_config
 REPLACE_WITH:
 import os
+import json
 from pathlib import Path
 
 VERSION = "2.1.0"
@@ -378,6 +379,49 @@ def load_config(self):
             config.setdefault('version', VERSION)
             return config
     return {'version': VERSION}
+
+6. Complex Mixed Changes Example
+FILE: database.py
+SECTION: GLOBAL_PREAMBLE
+UNTIL_EXCLUDE: class DatabaseManager
+REPLACE_WITH:
+import sqlite3
+import logging
+from typing import Optional, Dict, Any
+from contextlib import contextmanager
+
+# Configuration constants
+DB_FILE = "app.db"
+TIMEOUT = 30.0
+logger = logging.getLogger(__name__)
+
+FILE: database.py
+FIND_METHOD: def __init__(self, db_path: str)
+UNTIL_EXCLUDE: def connect(self)
+REPLACE_WITH:
+def __init__(self, db_path: str = DB_FILE):
+    """Initialize database manager with configurable path"""
+    self.db_path = db_path
+    self.timeout = TIMEOUT
+    logger.info(f"Database manager initialized: {db_path}")
+
+FILE: database.py
+FIND_METHOD: def execute_query(self, query, params=None)
+UNTIL_EXCLUDE: def close
+REPLACE_WITH:
+def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    """Execute query with improved error handling"""
+    try:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            return cursor.fetchall()
+    except sqlite3.Error as e:
+        logger.error(f"Database query failed: {e}")
+        raise
 Enhanced Features (v4.3.0)
 Global Section Support
 SECTION: GLOBAL_PREAMBLE - Handles module-level changes

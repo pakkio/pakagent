@@ -24,14 +24,83 @@ def read_archive():
     except Exception as e:
         print(f"❌ Error reading archive: {e}")
         return None
-def send_to_llm(archive_content, instructions):
+def classify_request(instructions):
+    """Use LLM to classify if request is question or code modification"""
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        # Fallback to keyword detection if no API key
+        question_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come']
+        return any(keyword in instructions.lower() for keyword in question_keywords)
+    
+    classification_prompt = f"""Classify this request as either "QUESTION" or "CODE_CHANGE".
+
+REQUEST: {instructions}
+
+Rules:
+- QUESTION: User is asking for explanation, analysis, opinion, or information
+- CODE_CHANGE: User wants to modify, add, fix, or implement code
+
+Examples:
+- "cosa ne pensi" → QUESTION
+- "what do you think" → QUESTION  
+- "explain this code" → QUESTION
+- "add logging" → CODE_CHANGE
+- "fix the bug" → CODE_CHANGE
+- "implement authentication" → CODE_CHANGE
+
+Respond with only: QUESTION or CODE_CHANGE"""
+
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3-haiku:beta"),
+                "messages": [{"role": "user", "content": classification_prompt}],
+                "max_tokens": 10,
+                "temperature": 0.0
+            },
+            timeout=30
+        )
+        if response.status_code == 200:
+            result = response.json()
+            classification = result["choices"][0]["message"]["content"].strip()
+            return classification == "QUESTION"
+        else:
+            # Fallback to keyword detection
+            question_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come']
+            return any(keyword in instructions.lower() for keyword in question_keywords)
+    except Exception:
+        # Fallback to keyword detection
+        question_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come']
+        return any(keyword in instructions.lower() for keyword in question_keywords)
+
+def send_to_llm(archive_content, instructions, is_question=False):
     """Send modification request to LLM"""
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         print("❌ Error: OPENROUTER_API_KEY not found in environment")
         print("Set it in .env file or environment variables")
         return None
-    prompt = f"""You are an expert code assistant. I need you to analyze the provided codebase and implement the requested changes.
+    
+    if is_question:
+        # For questions, just ask for analysis without pakdiff
+        prompt = f"""You are an expert code assistant. Please analyze the provided codebase and answer the following question.
+
+QUESTION: {instructions}
+
+Please provide a detailed analysis and answer based on the codebase provided below.
+
+CODEBASE:
+{archive_content}
+
+Please provide your analysis:"""
+    else:
+        # For modifications, use the full pakdiff format
+        prompt = f"""You are an expert code assistant. I need you to analyze the provided codebase and implement the requested changes.
 TASK: {instructions}
 INSTRUCTIONS:
 1. First, provide a detailed explanation of what you're going to do
@@ -85,10 +154,15 @@ Please implement the requested changes now:"""
     except Exception as e:
         print(f"❌ Error calling LLM API: {e}")
         return None
-def parse_llm_response(response_text):
+def parse_llm_response(response_text, is_question=False):
     """Parse LLM response into answer and pakdiff components"""
     if not response_text:
         return None, None
+    
+    # For questions, no pakdiff expected
+    if is_question:
+        return response_text.strip(), ""
+    
     sections = response_text.split("## IMPLEMENTATION")
     if len(sections) < 2:
         analysis = response_text
@@ -131,19 +205,29 @@ def main():
     load_dotenv()
     instruction = " ".join(sys.argv[1:])
     print(f"🎯 Task: {instruction}")
+    
+    # Use LLM to classify the request
+    print("🔍 Classifying request type...")
+    is_question = classify_request(instruction)
+    print(f"📋 Request type: {'Question' if is_question else 'Code modification'}")
+    
     archive_content = read_archive()
     if not archive_content:
         sys.exit(1)
-    response = send_to_llm(archive_content, instruction)
+    response = send_to_llm(archive_content, instruction, is_question)
     if not response:
         print("❌ Failed to get response from LLM")
         sys.exit(1)
-    answer_text, pakdiff_text = parse_llm_response(response)
-    if not answer_text or not pakdiff_text:
+    answer_text, pakdiff_text = parse_llm_response(response, is_question)
+    if not answer_text:
         print("❌ Failed to parse LLM response properly")
         print("Raw response:")
         print(response)
         sys.exit(1)
+    
+    # For questions, pakdiff_text will be empty
+    if is_question and not pakdiff_text:
+        print("ℹ️  Question detected - no pakdiff generated")
     if save_outputs(answer_text, pakdiff_text):
         print("\n🚀 Success! Next steps:")
         print("  python show_answer.py  # Review the changes")
