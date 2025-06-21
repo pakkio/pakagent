@@ -1,0 +1,521 @@
+pakagent is using pak tool:
+
+Pak: The Ultimate LLM Code Context Tool
+The Problem We All Face (But Rarely Admit)
+You're a developer in 2025. You use Claude, ChatGPT, or any other LLM for practically every development task. And every single time, it's the same comedy of errors:
+
+You need to share 5-10 files with the LLM for proper context
+Open first file → Ctrl+A → Ctrl+C → go to chat → add "File: path/file.py" → Ctrl+V
+Repeat for every single file, praying you don't mess up the order
+After 15 minutes you have a prompt that looks like university notes collage
+The LLM responds with modified code in separate blocks
+The real nightmare: now you have to copy each piece back from the LLM and save it to the right file
+You make mistakes, overwrite something important, and curse in your native dialect
+This little theater 20 times a day.
+
+If this workflow sounds familiar, Pak was born for you.
+
+The Solution: One Tool, Multiple Approaches, Zero Compromises
+Pak is a semantic compression tool that packages multiple files into LLM-friendly formats and extracts modified code back to proper file structures. It's evolved from a simple bash script into a sophisticated Python CLI with advanced features.
+
+Key Features
+Semantic Compression: Uses AST analysis and even LLM-based compression to understand code structure
+Method-Level Diffs: Generate, verify, and apply granular code changes with global section support
+Smart Prioritization: Automatically distinguishes between critical files and less important ones
+Token Budget Management: Rigorous token counting with adaptive compression
+Multi-Language Support: Python, JavaScript, Java, and more
+Backward Compatibility: Supports both modern and legacy syntax
+Quick Start
+Installation
+# Clone the repository
+git clone https://github.com/your-org/pak.git
+cd pak
+
+# Install dependencies
+poetry install
+
+# Make scripts executable
+chmod +x pak.py install.sh
+
+# Install standalone executables (optional)
+./install.sh
+Basic Usage
+# Pack current directory with smart compression
+./pak.py . -c smart -m 8000 -o project.pak
+
+# Using installed executable (after ./install.sh)
+pak . -c smart -m 8000 -o project.pak
+
+# List archive contents
+./pak.py -l project.pak
+
+# Extract archive
+./pak.py -x project.pak -d output/
+
+# Method diff workflow
+./pak.py --diff original.py modified.py -o changes.diff
+./pak.py -vd changes.diff  # Verify diff
+./pak.py -ad changes.diff target_file.py  # Apply diff
+Compression Levels
+Level	Description	Use Case
+0/none	Raw content	When you need exact files
+1/light	Basic whitespace removal	Quick cleanup
+2/medium	Light + comment removal	Balanced approach
+3/aggressive	AST-based structure extraction	Maximum compression
+4/semantic	LLM-based semantic compression	AI-powered optimization
+s/smart	Adaptive compression with fallback	Recommended for most cases
+Advanced Features
+Semantic Compression
+Pak can use external LLM services to intelligently compress code while maintaining semantic meaning:
+
+# Setup (one time)
+cp .env.sample .env
+# Edit .env and add your OPENROUTER_API_KEY
+
+# Use semantic compression
+./pak.py src/ -c semantic -m 8000
+Method-Level Diffs (v4.3.0)
+Extract and apply changes at the method/function level rather than entire files. Now supports global sections for imports, constants, and module-level changes across multiple programming languages:
+
+# Extract differences between files
+./pak.py --diff original.py modified.py -o changes.diff
+
+# Verify the diff file (supports GLOBAL_PREAMBLE sections)
+./pak.py -vd changes.diff
+
+# Apply changes to target files (handles decorators correctly)
+./pak.py -ad changes.diff target_directory/
+Enhanced v4.3.0 features:
+
+Multi-language support: Python, C++, Java, Go, Rust, configuration files
+GLOBAL_PREAMBLE sections: Handle imports, includes, constants, and module-level variables
+Decorator handling: Proper removal/addition of decorators like @property with boundary detection
+Mixed changes: Combine global and method changes in single diff files
+Automatic boundary detection: Smart detection of section boundaries when UNTIL_EXCLUDE is omitted
+LLM integration prompts: Self-documenting format with embedded analysis templates
+Configuration file support: Section-based changes for INI, YAML, and other config formats
+File Filtering
+# Include only specific file types
+./pak.py src/ -t py,js,md -c medium
+
+# Legacy extension syntax
+./pak --ext .py .js .md --compress-level medium src/
+Examples
+Scenario 1: Quick Bug Fix
+Your Node.js server has an authentication bug:
+
+# Modern syntax
+./pak.py server.js routes/auth.js middleware/ -c smart -o bug-context.pak
+
+# Legacy syntax
+./pak --compress-level smart server.js routes/auth.js middleware/ > bug-context.pak
+Scenario 2: Large Project Refactoring
+Working with a complex Python project:
+
+# Smart compression with token limit
+./pak.py src/ tests/ -t py,md -c smart -m 12000 -o refactor-context.pak
+
+# Extract method-level changes after LLM suggestions
+./pak.py --diff src/old_module.py src/new_module.py -o refactor.diff
+./pak.py -ad refactor.diff target_project/src/
+Scenario 3: Documentation and Code Review
+Preparing context for documentation generation:
+
+# Include documentation and core files
+./pak.py README.md docs/ src/core/ -c semantic -m 16000 -o docs-context.pak
+Architecture
+Core Components
+pak.py: Main Python CLI with full feature set
+Compression Strategies: Modular compression system with multiple algorithms
+Method Diff System: Granular change extraction and application
+Archive Format: Custom JSON-based format optimized for LLM consumption
+Modules
+pak_compressor.py: Compression strategies and token management
+pak_differ.py: Method-level diff extraction and application
+pak_archive_manager.py: Archive format handling
+pak_utils.py: File collection and utilities
+pak_analyzer.py: Language-specific analysis
+semantic_compressor.py: LLM-based semantic compression
+ast_helper.py: Tree-sitter AST analysis helper
+Configuration
+Environment Variables
+OPENROUTER_API_KEY: API key for LLM-based semantic compression
+PAK_DEBUG: Enable detailed debug output
+PAK_QUIET: Suppress stderr messages
+Configuration Files
+.env: Environment variables (copy from .env.sample)
+pyproject.toml: Python dependencies managed by Poetry
+Testing
+# Run integration tests
+python3 test_method_diff.py
+python3 test_pak_core_integration.py
+
+# Run unit tests for all modules
+poetry run pytest tests/ -v
+
+# Run pakdiff multi-language integration tests
+poetry run pytest tests/integration/test_pakdiff_multilang.py -v
+
+# Run all pakdiff-related tests
+poetry run pytest tests/ -k "pakdiff or differ" -v
+
+# Test with debug output
+PAK_DEBUG=true ./pak.py test_files/ -c smart -m 5000
+Standalone Executables
+Build standalone executables that work without Python:
+
+# Simple build (recommended - uses install.sh)
+./install.sh
+
+# Manual build
+poetry run pyinstaller --onefile pak.py
+poetry run pyinstaller --onefile ast_helper.py
+
+# Use anywhere
+pak src/ -c smart -m 8000 -o project.pak
+ast_helper analyze_file.py
+PyInstaller Notes
+WSL/Virtual Environment Fix: If you encounter shared library errors like Failed to load Python shared library, the build process automatically includes the required libpython3.12.so using:
+
+poetry run pyinstaller --onefile --add-binary "/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0:." pak.py
+This fix is already integrated into pak.spec and install.sh. The issue occurs when:
+
+Using Poetry virtual environments (which lack the shared Python library)
+Building on WSL or similar environments
+PyInstaller can't find the Python shared library at runtime
+Build artifacts: The build/ and dist/ directories are created during compilation and can be ignored (add to .gitignore).
+
+Migration from Legacy
+If you're upgrading from the bash pak script, all your existing commands will work:
+
+# These commands are equivalent:
+./pak --compress-level smart --max-tokens 8000 src/     # Legacy
+./pak.py -c smart -m 8000 src/                         # Modern
+
+# Extension filtering:
+./pak --ext .py .js .md src/                           # Legacy  
+./pak.py -t py,js,md src/                              # Modern
+Performance Tips
+Use Smart Compression: -c smart automatically chooses the best strategy
+Set Token Limits: Use -m to stay within LLM context windows
+Filter File Types: Use -t to include only relevant extensions
+Enable Caching: Semantic compression results are automatically cached
+Prioritize Files: Critical files (README, main modules) get higher priority
+Troubleshooting
+Common Issues
+Semantic compression not working?
+
+Check that .env file exists with valid OPENROUTER_API_KEY
+Install required dependencies: poetry install
+AST compression failing?
+
+Ensure tree-sitter packages are installed
+Falls back to text-based compression automatically
+Token counts seem wrong?
+
+Token estimation uses 3 chars = 1 token approximation
+For exact counts, integrate with tiktoken
+Debug Mode
+PAK_DEBUG=true ./pak.py src/ -c semantic -m 8000
+Contributing
+Follow the existing code style (use black . for formatting)
+Run both integration and unit tests
+Update documentation for new features
+Test backward compatibility with legacy syntax
+License
+[Your License Here]
+
+Version History
+v5.0: Consolidated pak4.py → pak.py, full backward compatibility
+v4.3: Enhanced pakdiff format with GLOBAL_PREAMBLE sections and decorator bug fixes
+v4.2: Method diff system, semantic compression, AST analysis
+v3.x: Original Python implementation with advanced features
+v2.x: Bash script with basic compression
+v1.x: Initial implementation
+Pak: Because life's too short for copy-paste workflows.
+
+and pakdiff format:
+
+pakdiff Format Specification v4.3.0
+Overview
+The pakdiff format is a method-level diff format designed for granular code changes. Unlike traditional line-based diffs, pakdiff operates at the method/function level, allowing precise modifications, additions, and deletions.
+
+v4.3.0 Enhancements:
+
+Added GLOBAL_PREAMBLE section support for module-level changes
+Enhanced decorator handling in method boundaries
+Support for import statements, global variables, and constants
+Format Structure
+Basic Schema
+Method-level changes:
+
+FILE: path/to/file.extension
+FIND_METHOD: method_signature_to_find
+UNTIL_EXCLUDE: next_method_signature_or_empty
+REPLACE_WITH:
+full_replacement_code
+Global section changes (v4.3.0):
+
+FILE: path/to/file.extension
+SECTION: GLOBAL_PREAMBLE
+UNTIL_EXCLUDE: def first_method
+REPLACE_WITH:
+import statements
+global variables
+module constants
+Block Separator
+Each change is separated by a blank line. No additional separators are allowed.
+
+Operation Types
+1. Global Section Changes (v4.3.0)
+Python example:
+
+FILE: api_client.py
+SECTION: GLOBAL_PREAMBLE
+UNTIL_EXCLUDE: class APIClient
+REPLACE_WITH:
+import requests
+import json
+from datetime import datetime
+from typing import Dict, Any, Optional
+
+# Updated API configuration
+API_BASE_URL = "https://api.example.com/v2"
+DEFAULT_TIMEOUT = 30
+RETRY_ATTEMPTS = 3
+
+# Global logger setup
+logger = setup_logger(__name__)
+C++ example:
+
+FILE: network_client.cpp
+SECTION: GLOBAL_PREAMBLE
+UNTIL_EXCLUDE: class NetworkClient
+REPLACE_WITH:
+#include <iostream>
+#include <string>
+#include <memory>
+#include <chrono>
+#include "network_client.h"
+#include "logger.h"
+
+using namespace std;
+using namespace chrono;
+
+// Global configuration constants
+constexpr int DEFAULT_TIMEOUT_MS = 30000;
+constexpr int MAX_RETRY_ATTEMPTS = 3;
+const string API_BASE_URL = "https://api.example.com/v2";
+
+// Global logger instance
+static auto logger = Logger::getInstance();
+2. Modify Existing Method
+Python example:
+
+FILE: calculator.py
+FIND_METHOD: def add(self, a, b)
+UNTIL_EXCLUDE: def subtract(self, a, b)
+REPLACE_WITH:
+def add(self, a, b):
+    """Enhanced addition with logging"""
+    result = a + b
+    self.history.append(f"ADD: {a} + {b} = {result}")
+    return round(result, self.precision)
+C++ example:
+
+FILE: calculator.cpp
+FIND_METHOD: double Calculator::add(double a, double b)
+UNTIL_EXCLUDE: double Calculator::subtract(double a, double b)
+REPLACE_WITH:
+double Calculator::add(double a, double b) {
+    // Enhanced addition with logging and error checking
+    if (!isfinite(a) || !isfinite(b)) {
+        throw std::invalid_argument("Invalid input: non-finite values");
+    }
+    
+    double result = a + b;
+    logger->info("ADD: {} + {} = {}", a, b, result);
+    history.push_back({Operation::ADD, a, b, result});
+    
+    return round(result * precision) / precision;
+}
+3. Decorator Changes (Enhanced v4.3.0)
+FILE: models.py
+FIND_METHOD: def get_name(self)
+UNTIL_EXCLUDE: def set_name(self, value)
+REPLACE_WITH:
+def get_name(self):
+    """Get name without property decorator"""
+    return self._name
+4. Add New Method (Append)
+FILE: calculator.py
+FIND_METHOD: 
+UNTIL_EXCLUDE: 
+REPLACE_WITH:
+def new_method(self):
+    """This method will be appended at the end"""
+    return "new functionality"
+5. Mixed Global and Method Changes
+FILE: config.py
+SECTION: GLOBAL_PREAMBLE
+UNTIL_EXCLUDE: def load_config
+REPLACE_WITH:
+import os
+from pathlib import Path
+
+VERSION = "2.1.0"
+CONFIG_FILE = Path.home() / ".app" / "config.json"
+
+FILE: config.py
+FIND_METHOD: def load_config(self)
+UNTIL_EXCLUDE: def save_config
+REPLACE_WITH:
+def load_config(self):
+    """Load configuration with new version support"""
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE) as f:
+            config = json.load(f)
+            config.setdefault('version', VERSION)
+            return config
+    return {'version': VERSION}
+Enhanced Features (v4.3.0)
+Global Section Support
+SECTION: GLOBAL_PREAMBLE - Handles module-level changes
+Auto-boundary detection - Finds first class/function if no UNTIL_EXCLUDE
+Import management - Track import statement changes
+Global variables - Handle module constants and configuration
+Enhanced Method Boundary Detection
+Decorator inclusion - Automatically includes decorators with methods
+Backward scanning - Finds decorators above method definitions
+Proper replacement - Replaces entire method including decorators
+Processing Order
+Global sections first - Apply GLOBAL_PREAMBLE changes
+Method sections second - Apply method-level changes
+File-by-file processing - Complete each file before next
+Backward Compatibility
+v4.1.0 format - Fully supported (SECTION defaults to METHOD)
+Legacy diffs - Work unchanged with enhanced processor
+Optional keywords - SECTION directive is optional
+Implementation Notes
+Decorator Bug Fix
+The enhanced format fixes the decorator removal bug by:
+
+Including decorators in method boundary detection
+Scanning backwards from method signature to find decorators
+Replacing entire decorator+method block as unit
+Global Section Extraction
+Detects changes in module preamble (before first class/function)
+Extracts import modifications, global variable changes
+Generates GLOBAL_PREAMBLE sections automatically
+LLM Integration Guidelines
+When working with LLMs to generate pakdiff format, use these prompts for optimal results:
+
+Analysis Prompt Template
+You are a code analysis expert. Given two versions of a codebase, generate a pakdiff v4.3.0 format diff.
+
+**Instructions:**
+1. Identify ALL changes between the codebases (files, methods, global sections)
+2. Use GLOBAL_PREAMBLE sections for: imports, includes, using statements, global variables, constants
+3. Use FIND_METHOD for specific method/function changes
+4. Include decorators and access modifiers in method signatures
+5. Use proper UNTIL_EXCLUDE boundaries for each change
+
+**Supported Languages:** Python, JavaScript, Java, C++, C
+**Supported Section Types:** GLOBAL_PREAMBLE, METHOD (default)
+
+**Output Format:** Valid pakdiff v4.3.0 with FILE:, SECTION:, FIND_METHOD:, UNTIL_EXCLUDE:, REPLACE_WITH: blocks
+
+**Multi-language examples in pakdiff format are provided in the specification.**
+Validation Prompt Template
+You are validating a pakdiff v4.3.0 format file. Check for:
+
+**Format Requirements:**
+- Each change starts with FILE: path/to/file.extension
+- SECTION: GLOBAL_PREAMBLE for module-level changes (optional, defaults to METHOD)
+- FIND_METHOD: signature for modifications (empty for additions)
+- UNTIL_EXCLUDE: boundary signature (optional)
+- REPLACE_WITH: new content (can be empty for deletions)
+- Blank line separates each change block
+
+**Language-Specific Validation:**
+- Python: def/class signatures, import statements
+- C++: function signatures with types, #include directives, namespace/using statements
+- Java: method signatures with access modifiers, import statements
+- JavaScript: function signatures, import/export statements
+
+**Report:** Any format violations, missing required fields, or syntax errors
+Exhaustive Mode Prompt
+Generate a comprehensive pakdiff covering ALL differences between two project versions.
+
+**Process:**
+1. **File Discovery:** Identify all changed, added, deleted files
+2. **Global Analysis:** Compare imports, includes, global variables, constants
+3. **Method Analysis:** Compare all functions, methods, classes
+4. **Template Generation:** Create pakdiff blocks for each identified change
+
+**Priority Order:**
+1. GLOBAL_PREAMBLE sections first
+2. Core class/struct definitions
+3. Method implementations
+4. Utility functions
+
+**Output:** Complete pakdiff v4.3.0 format that transforms codebase_v1 → codebase_v2
+Configuration Files and INI Support
+For configuration files (INI, YAML, JSON, TOML), the standard GLOBAL_PREAMBLE approach may not be ideal. Consider these alternative section types:
+
+INI Files
+FILE: config.ini
+SECTION: INI_SECTION
+SECTION_NAME: [database]
+REPLACE_WITH:
+host = localhost
+port = 5432
+username = newuser
+password = newpass
+timeout = 30
+
+FILE: config.ini
+SECTION: INI_SECTION
+SECTION_NAME: [cache]
+REPLACE_WITH:
+enabled = true
+redis_url = redis://localhost:6379
+ttl = 3600
+YAML Files
+FILE: config.yaml
+SECTION: YAML_PATH
+PATH: database.connection
+REPLACE_WITH:
+host: localhost
+port: 5432
+ssl: true
+pool_size: 10
+Alternative: Use FIND_METHOD with Section Headers
+FILE: app.ini
+FIND_METHOD: [database]
+UNTIL_EXCLUDE: [logging]
+REPLACE_WITH:
+[database]
+host = newhost.example.com
+port = 5432
+ssl_enabled = true
+These specialized section types could be implemented as future enhancements to handle structured configuration files more naturally.
+
+Compatibility
+This pakdiff v4.3.0 format is compatible with pak tool v5.0.0 and later.
+
+=== pakagent is using pak and pakdiff in its usage, producing 5 distinct python programs:
+
+a) send *.py *.md
+will produce a /tmp/archive.txt with all files compressed for review/changes to an llm
+
+b) modify "try doing this"
+will use the /tmp/archive.txt implementing via llm what is asked, and receiving back from llm in structured form /tmp/answer and /tmp/fix where fix is in the pakdiff format
+
+b can be called multiple times
+
+c) apply
+applies answer and pakdiff to current code base
+
+d) show-answer
+often done after modify and before apply to view the returned answer and pakdiff. ahow answer should show 3 windows in a terminal easy form, 1st window is the answer, viewing 10 lines at a time with up down for scrolling, second windows should show a summary of the pakdiff, with each method listed and highlighted starting from the first with page up/down as scrolling, and synched with the 2nd window selection/method a 3rd window showing the actual method highlighted with - + to scroll . we also have az sx dc as character to go to the top and bottom of each window. understood?

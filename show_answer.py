@@ -77,8 +77,10 @@ class ShowAnswerUI:
         self.method_content = {}
         
         self.answer_start = 0
+        self.answer_col = 0
         self.summary_start = 0
         self.method_start = 0
+        self.method_col = 0
         self.selected_method = 0
         
         self.setup_windows()
@@ -102,7 +104,7 @@ class ShowAnswerUI:
         pakdiff_lines = read_file("/tmp/fix")
         self.pakdiff_summary, self.method_content = parse_pakdiff(pakdiff_lines)
         
-    def draw_window(self, win, title: str, content: List[str], start_line: int, highlight_line: int = -1):
+    def draw_window(self, win, title: str, content: List[str], start_line: int, start_col: int = 0, highlight_line: int = -1):
         """Draw content in a window with title and scrolling."""
         win.clear()
         win.box()
@@ -116,7 +118,8 @@ class ShowAnswerUI:
         for i in range(usable_height):
             line_idx = start_line + i
             if line_idx < len(content):
-                line = content[line_idx][:usable_width]
+                full_line = content[line_idx].rstrip()
+                line = full_line[start_col:start_col + usable_width] if start_col < len(full_line) else ""
                 attr = curses.A_REVERSE if line_idx == highlight_line else 0
                 try:
                     win.addstr(i + 1, 1, line.ljust(usable_width), attr)
@@ -135,15 +138,15 @@ class ShowAnswerUI:
         
     def draw_all_windows(self):
         """Draw all three windows."""
-        self.draw_window(self.answer_win, "Answer", self.answer_lines, self.answer_start)
+        self.draw_window(self.answer_win, "Answer", self.answer_lines, self.answer_start, self.answer_col)
         
         self.draw_window(self.summary_win, "Pakdiff Summary", self.pakdiff_summary, 
-                        self.summary_start, self.selected_method)
+                        self.summary_start, 0, self.selected_method)
         
         method_content = self.get_current_method_content()
-        self.draw_window(self.method_win, "Method Detail", method_content, self.method_start)
+        self.draw_window(self.method_win, "Method Detail", method_content, self.method_start, self.method_col)
         
-        help_text = "Controls: ↑↓(answer) PgUp/PgDn(summary) +/-(method) a/z s/x d/c(nav) q(uit)"
+        help_text = "Controls: ↑↓←→(answer) PgUp/PgDn(summary) +/-*/(method) a/z s/x d/c(nav) q(uit)"
         try:
             self.stdscr.addstr(self.height - 1, 0, help_text[:self.width - 1])
         except curses.error:
@@ -153,6 +156,7 @@ class ShowAnswerUI:
     def handle_input(self):
         """Handle keyboard input and navigation."""
         while True:
+            # Display archive immediately upon startup and after each input
             self.draw_all_windows()
             key = self.stdscr.getch()
             
@@ -163,6 +167,10 @@ class ShowAnswerUI:
             elif key == curses.KEY_DOWN:
                 if self.answer_start + 10 < len(self.answer_lines):
                     self.answer_start += 1
+            elif key == curses.KEY_LEFT:
+                self.answer_col = max(0, self.answer_col - 5)
+            elif key == curses.KEY_RIGHT:
+                self.answer_col += 5
             elif key == curses.KEY_PPAGE:
                 self.selected_method = max(0, self.selected_method - 1)
                 self.method_start = 0
@@ -181,8 +189,13 @@ class ShowAnswerUI:
                     self.method_start += 1
             elif key == ord('-'):
                 self.method_start = max(0, self.method_start - 1)
+            elif key == ord('*'):
+                self.method_col = max(0, self.method_col - 5)
+            elif key == ord('/'):
+                self.method_col += 5
             elif key == ord('a'):
                 self.answer_start = 0
+                self.answer_col = 0
             elif key == ord('z'):
                 self.answer_start = max(0, len(self.answer_lines) - 10)
             elif key == ord('s'):
@@ -196,15 +209,24 @@ class ShowAnswerUI:
                 self.method_start = 0
             elif key == ord('d'):
                 self.method_start = 0
+                self.method_col = 0
             elif key == ord('c'):
                 method_content = self.get_current_method_content()
                 self.method_start = max(0, len(method_content) - 10)
 
-def show_answer():
-    """Main function to display the three-window interface."""
-    def main(stdscr):
+def main():
+    """Main function to display the three-window interface with immediate archive display."""
+    def curses_main(stdscr):
         ui = ShowAnswerUI(stdscr)
         ui.load_data()
+        
+        # Load archive from /tmp/archive.txt if it exists
+        try:
+            archive_lines = read_file("/tmp/archive.txt")
+            if archive_lines and not archive_lines[0].startswith("Error:"):
+                ui.answer_lines = archive_lines + ["", "=== PAKDIFF ANSWER ===", ""] + ui.answer_lines
+        except:
+            pass
         
         if not ui.answer_lines or not ui.pakdiff_summary:
             stdscr.addstr(0, 0, "Error: Could not load /tmp/answer or /tmp/fix files")
@@ -214,7 +236,10 @@ def show_answer():
             
         ui.handle_input()
     
-    curses.wrapper(main)
+    curses.wrapper(curses_main)
+def show_answer():
+    """Legacy function name for compatibility."""
+    main()
 
 if __name__ == "__main__":
-    show_answer()
+    main()

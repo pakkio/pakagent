@@ -1,0 +1,33 @@
+import statements
+global variables
+```
+For method modifications, use FIND_METHOD and UNTIL_EXCLUDE.
+For global changes (imports, constants), use SECTION: GLOBAL_PREAMBLE.
+Separate multiple changes with blank lines.
+CODEBASE:
+{pak_content}
+Generate the pakdiff now:"""
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": os.environ.get("SEMANTIC_MODEL", "anthropic/claude-3-haiku:beta"),
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": int(os.environ.get("SEMANTIC_MAX_TOKENS", "4000")),
+                "temperature": float(os.environ.get("SEMANTIC_TEMPERATURE", "0.1"))
+            },
+            timeout=60
+        )
+        if response.status_code == 200:
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+        else:
+            print(f"[LLM Loop] API error {response.status_code}: {response.text}")
+            return None
+    except Exception as e:
+        print(f"[LLM Loop] Error calling LLM API: {e}")
+        return None

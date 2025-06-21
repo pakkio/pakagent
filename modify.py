@@ -1,36 +1,29 @@
-#!/usr/bin/env python3
 """
 Program b) modify "try doing this"
 Uses /tmp/archive.txt and implements via LLM what is asked,
 receiving back from LLM in structured form /tmp/answer and /tmp/fix (pakdiff format)
 """
-
 import os
 import sys
 import requests
 import re
 from pathlib import Path
 from dotenv import load_dotenv
-
 def read_archive():
     """Read the archive file created by send.py"""
     archive_path = Path("/tmp/archive.txt")
-    
     if not archive_path.exists():
         print("❌ Archive file /tmp/archive.txt not found.")
         print("Run 'python send.py' first to create the archive.")
         return None
-    
     try:
         with open(archive_path, 'r') as f:
             content = f.read()
-        
         print(f"📄 Loaded archive: {len(content):,} characters")
         return content
     except Exception as e:
         print(f"❌ Error reading archive: {e}")
         return None
-
 def send_to_llm(archive_content, instructions):
     """Send modification request to LLM"""
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -38,30 +31,19 @@ def send_to_llm(archive_content, instructions):
         print("❌ Error: OPENROUTER_API_KEY not found in environment")
         print("Set it in .env file or environment variables")
         return None
-    
-    # Create comprehensive prompt for both answer and pakdiff generation
     prompt = f"""You are an expert code assistant. I need you to analyze the provided codebase and implement the requested changes.
-
 TASK: {instructions}
-
 INSTRUCTIONS:
 1. First, provide a detailed explanation of what you're going to do
 2. Then provide the implementation as pakdiff v4.3.0 format
-
 Your response should be structured EXACTLY like this:
-
-## ANALYSIS AND PLAN
 [Your detailed explanation of the changes you will make]
-
-## IMPLEMENTATION
-
 ```pakdiff
 FILE: path/to/file.extension
 FIND_METHOD: method_signature_to_find
 UNTIL_EXCLUDE: next_method_signature_or_empty
 REPLACE_WITH:
 new_method_implementation
-
 FILE: path/to/file.extension
 SECTION: GLOBAL_PREAMBLE
 UNTIL_EXCLUDE: first_class_or_function
@@ -69,19 +51,15 @@ REPLACE_WITH:
 import statements
 global variables
 ```
-
 PAKDIFF FORMAT RULES:
 - Use FIND_METHOD for modifying existing methods/functions
 - Use SECTION: GLOBAL_PREAMBLE for imports, global variables, constants
 - Use empty FIND_METHOD for adding new methods at end of file
 - Include proper UNTIL_EXCLUDE boundaries
 - Separate multiple changes with blank lines
-
 CODEBASE:
 {archive_content}
-
 Please implement the requested changes now:"""
-
     try:
         print("🤖 Sending request to LLM...")
         response = requests.post(
@@ -98,65 +76,48 @@ Please implement the requested changes now:"""
             },
             timeout=120
         )
-        
         if response.status_code == 200:
             result = response.json()
             return result["choices"][0]["message"]["content"]
         else:
             print(f"❌ API error {response.status_code}: {response.text}")
             return None
-            
     except Exception as e:
         print(f"❌ Error calling LLM API: {e}")
         return None
-
 def parse_llm_response(response_text):
     """Parse LLM response into answer and pakdiff components"""
     if not response_text:
         return None, None
-    
-    # Split response into analysis and implementation sections
     sections = response_text.split("## IMPLEMENTATION")
-    
     if len(sections) < 2:
-        # Fallback: look for pakdiff code block anywhere in response
         analysis = response_text
         implementation_section = response_text
     else:
         analysis = sections[0].replace("## ANALYSIS AND PLAN", "").strip()
         implementation_section = sections[1]
-    
-    # Extract pakdiff from code block
     pakdiff_pattern = r'```(?:pakdiff)?\s*\n(.*?)\n```'
     pakdiff_matches = re.findall(pakdiff_pattern, implementation_section, re.DOTALL)
-    
     if pakdiff_matches:
         pakdiff_content = pakdiff_matches[0].strip()
         print("✅ Successfully extracted pakdiff from response")
     else:
         print("⚠️  No pakdiff code block found, using full implementation section")
         pakdiff_content = implementation_section.strip()
-    
     return analysis, pakdiff_content
-
 def save_outputs(answer_text, pakdiff_text):
     """Save answer and pakdiff to /tmp/ files"""
     try:
-        # Save answer
         with open("/tmp/answer", "w") as f:
             f.write(answer_text)
         print("✅ Saved analysis to /tmp/answer")
-        
-        # Save pakdiff
         with open("/tmp/fix", "w") as f:
             f.write(pakdiff_text)
         print("✅ Saved pakdiff to /tmp/fix")
-        
         return True
     except Exception as e:
         print(f"❌ Error saving outputs: {e}")
         return False
-
 def main():
     """Main function"""
     if len(sys.argv) < 2:
@@ -167,41 +128,27 @@ def main():
         print("  python modify.py 'add input validation'")
         print("  python modify.py 'refactor code for better readability'")
         return
-    
-    # Load environment variables
     load_dotenv()
-    
-    # Get instruction from command line
     instruction = " ".join(sys.argv[1:])
     print(f"🎯 Task: {instruction}")
-    
-    # Read archive
     archive_content = read_archive()
     if not archive_content:
         sys.exit(1)
-    
-    # Send to LLM
     response = send_to_llm(archive_content, instruction)
     if not response:
         print("❌ Failed to get response from LLM")
         sys.exit(1)
-    
-    # Parse response
     answer_text, pakdiff_text = parse_llm_response(response)
-    
     if not answer_text or not pakdiff_text:
         print("❌ Failed to parse LLM response properly")
         print("Raw response:")
         print(response)
         sys.exit(1)
-    
-    # Save outputs
     if save_outputs(answer_text, pakdiff_text):
         print("\n🚀 Success! Next steps:")
         print("  python show_answer.py  # Review the changes")
         print("  python apply.py        # Apply the changes")
     else:
         sys.exit(1)
-
 if __name__ == "__main__":
     main()
