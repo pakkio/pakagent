@@ -1,6 +1,6 @@
 # Contributing to PakAgent
 
-Thank you for your interest in contributing to PakAgent! We appreciate any help improving this 4-program workflow system for LLM-assisted code development.
+Thank you for your interest in contributing to PakAgent! We appreciate any help improving this 6-program workflow system for LLM-assisted code development.
 
 ## Quick Start
 
@@ -58,13 +58,13 @@ pytest
 pytest --cov=. --cov-report=html
 
 # Run specific test file
-pytest tests/test_send.py
+pytest tests/test_prepare.py
 
 # Test the actual workflow
-./send.py *.py *.md
-./modify.py "add test comment"
+./prepare.py *.py *.md
+./pakmod.py "add test comment"
 ./pakdiff.py
-./apply.py --force
+./pakapply.py --force
 ```
 
 ### 4. Pre-commit Checks
@@ -131,11 +131,12 @@ pre-commit run --all-files
 Understanding the system architecture helps with contributions:
 
 ```
-send.py     → Packages files using pak compression
-modify.py   → LLM interaction and pakdiff generation  
-pakdiff.py → 3-window curses review interface
-apply.py    → Safe pakdiff application to codebase
-revert.py   → File restoration from archive
+prepare.py    → Packages files using pak compression
+pakmod.py     → LLM interaction and pakdiff generation  
+pakdiff.py    → 3-window curses review interface
+pakapply.py   → Safe pakdiff application to codebase
+pakrestore.py → File restoration from archive
+pakview.py    → Navigate pak archives in 3-window interface
 ```
 
 ### Key Design Principles

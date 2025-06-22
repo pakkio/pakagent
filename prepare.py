@@ -1,5 +1,5 @@
 """
-Program a) send *.py *.md
+Program a) prepare *.py *.md
 Produces archive with all files compressed for review/changes to an LLM
 """
 import os

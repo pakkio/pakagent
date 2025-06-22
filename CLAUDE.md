@@ -8,21 +8,21 @@ PakAgent is a secure, enterprise-grade 5-program workflow system that simplifies
 ## Architecture
 The system consists of 6 secure, enterprise-ready programs that work together:
 
-1. **send.py** - Securely packages files using pak tool compression with input sanitization
-2. **modify.py** - Gets LLM-generated changes with API key protection and validation
+1. **prepare.py** - Securely packages files using pak tool compression with input sanitization
+2. **pakmod.py** - Gets LLM-generated changes with API key protection and validation
 3. **pakdiff.py** - 3-window curses interface for safely reviewing changes
-4. **apply.py** - Securely applies pakdiff changes with content validation and verification
-5. **revert.py** - Safely restores original files from session archive with confirmations
+4. **pakapply.py** - Securely applies pakdiff changes with content validation and verification
+5. **pakrestore.py** - Safely restores original files from session archive with confirmations
 6. **pakview.py** - 3-window curses interface for navigating pak archives
 
 ## Workflow
 ```bash
-./send.py *.py *.md              # Package files → /tmp/archive.txt
+./prepare.py *.py *.md           # Package files → /tmp/archive.txt
 ./pakview.py                     # View packaged archive (optional)
-./modify.py "add logging"        # LLM changes → /tmp/answer + /tmp/fix
+./pakmod.py "add logging"        # LLM changes → /tmp/answer + /tmp/fix
 ./pakdiff.py                     # Review changes in 3-window interface
-./apply.py                       # Apply changes to codebase
-./revert.py                      # Restore original files if needed
+./pakapply.py                    # Apply changes to codebase
+./pakrestore.py                  # Restore original files if needed
 ```
 
 ## Key Technologies
@@ -35,11 +35,11 @@ The system consists of 6 secure, enterprise-ready programs that work together:
 - **Logging Framework**: Structured logging with configurable levels and security masking
 
 ## File Structure
-- `send.py` - Secure file packaging with input sanitization and git integration
-- `modify.py` - LLM interaction with API key protection and response validation
+- `prepare.py` - Secure file packaging with input sanitization and git integration
+- `pakmod.py` - LLM interaction with API key protection and response validation
 - `pakdiff.py` - Interactive change review interface with safety checks
-- `apply.py` - Secure pakdiff application with content validation
-- `revert.py` - Safe file restoration with confirmation workflows
+- `pakapply.py` - Secure pakdiff application with content validation
+- `pakrestore.py` - Safe file restoration with confirmation workflows
 - `pakagent_config.py` - Centralized security functions and logging framework
 - `install.sh` - PyInstaller-based binary generation and installation
 - `*.spec` - PyInstaller specification files for each program
@@ -80,20 +80,20 @@ Uses `.env` file for:
 ## Testing Commands
 ```bash
 # Basic workflow test
-./send.py
-./modify.py "add comments to methods"
+./prepare.py
+./pakmod.py "add comments to methods"
 ./pakdiff.py
-./apply.py --force
+./pakapply.py --force
 
 # File-specific test
-./send.py calculator.py
-./modify.py "add input validation"
+./prepare.py calculator.py
+./pakmod.py "add input validation"
 
 # Review without applying
-./modify.py "refactor for clarity" && ./pakdiff.py
+./pakmod.py "refactor for clarity" && ./pakdiff.py
 
 # Revert if something goes wrong
-./revert.py --force
+./pakrestore.py --force
 ```
 
 ## Security Architecture

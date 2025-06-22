@@ -1,5 +1,5 @@
 """
-Program d) apply
+Program d) pakapply
 Applies answer and fix (pakdiff) to current codebase with git integration
 """
 import os

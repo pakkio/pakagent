@@ -12,19 +12,19 @@ PakAgent simplifies the process of getting LLM help with your code by automating
 
 ## The 6-Program Workflow
 
-### a) `send.py` - Package Files
+### a) `prepare.py` - Package Files
 ```bash
-./send.py                    # Default: *.py *.md files
-./send.py *.js *.ts          # Specific file types
-./send.py src/ docs/         # Directories
+./prepare.py                 # Default: *.py *.md files
+./prepare.py *.js *.ts       # Specific file types
+./prepare.py src/ docs/      # Directories
 ```
 Produces `/tmp/archive.txt` with compressed files for LLM review.
 
-### b) `modify.py` - Get LLM Changes  
+### b) `pakmod.py` - Get LLM Changes  
 ```bash
-./modify.py "add logging to all methods"
-./modify.py "implement error handling"
-./modify.py "refactor for better readability"
+./pakmod.py "add logging to all methods"
+./pakmod.py "implement error handling"
+./pakmod.py "refactor for better readability"
 ```
 Uses `/tmp/archive.txt` and generates:
 - `/tmp/answer` - LLM's analysis and explanation
@@ -41,17 +41,17 @@ Opens 3-window terminal interface to review:
 
 Controls: `a/z` (top/bottom), `s/x` (navigate), `d/c` (jump), `q` (quit)
 
-### d) `apply.py` - Apply Changes
+### d) `pakapply.py` - Apply Changes
 ```bash
-./apply.py                   # Interactive confirmation
-./apply.py --force          # Skip confirmation
+./pakapply.py                # Interactive confirmation
+./pakapply.py --force        # Skip confirmation
 ```
 Applies pakdiff changes to your codebase with verification.
 
-### e) `revert.py` - Restore Original Files
+### e) `pakrestore.py` - Restore Original Files
 ```bash
-./revert.py                  # Interactive confirmation
-./revert.py --force         # Skip confirmation
+./pakrestore.py              # Interactive confirmation
+./pakrestore.py --force      # Skip confirmation
 ```
 Restores files to their original state from session archive if apply fails or you want to undo changes.
 

@@ -1,5 +1,5 @@
 """
-Program b) modify "try doing this"
+Program b) pakmod "try doing this"
 Uses archive and implements via LLM what is asked,
 receiving back from LLM in structured form answer and fix (pakdiff format)
 """
@@ -11,9 +11,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pakagent_config import config, check_required_files, get_requests_session, logger, mask_sensitive_data, validate_pakdiff_content
 def read_archive():
-    """Read the archive file created by send.py"""
+    """Read the archive file created by prepare.py"""
     if not check_required_files(config.archive_path):
-        logger.error("Run 'python send.py' first to create the archive.")
+        logger.error("Run 'python prepare.py' first to create the archive.")
         return None
     try:
         with open(config.archive_path, 'r') as f:

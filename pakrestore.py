@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Program e) revert - Restore original files from archive
+Program e) pakrestore - Restore original files from archive
 Uses pak -x archive.txt to restore files to their original state
 before any pakdiff modifications were applied.
 """

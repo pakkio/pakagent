@@ -1,11 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 a = Analysis(
-    ['send.py', 'pakagent_config.py'],
+    ['pakmod.py', 'pakagent_config.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['requests', 'dotenv'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -20,7 +20,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='send',
+    name='pakmod',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

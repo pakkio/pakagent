@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 a = Analysis(
-    ['revert.py', 'pakagent_config.py'],
+    ['pakapply.py', 'pakagent_config.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -20,7 +20,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='revert',
+    name='pakapply',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

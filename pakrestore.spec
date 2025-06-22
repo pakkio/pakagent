@@ -1,11 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 a = Analysis(
-    ['modify.py', 'pakagent_config.py'],
+    ['pakrestore.py', 'pakagent_config.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=['requests', 'dotenv'],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -20,7 +20,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='modify',
+    name='pakrestore',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
