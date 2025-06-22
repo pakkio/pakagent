@@ -217,7 +217,7 @@ class ShowAnswerUI:
                 self.method_start = max(0, len(method_content) - 10)
 
 def main():
-    """Main function to display the three-window interface with immediate archive display."""
+    """Main function to display the pakdiff review interface."""
     # Verify required output files exist
     if not os.path.exists(str(config.answer_path)) or not os.path.exists(str(config.fix_path)):
         sys.exit(1)
@@ -242,6 +242,7 @@ def main():
         ui.handle_input()
     
     curses.wrapper(curses_main)
+
 def show_answer():
     """Legacy function name for compatibility."""
     main()

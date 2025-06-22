@@ -63,7 +63,7 @@ pytest tests/test_send.py
 # Test the actual workflow
 ./send.py *.py *.md
 ./modify.py "add test comment"
-./show_answer.py
+./pakdiff.py
 ./apply.py --force
 ```
 
@@ -133,7 +133,7 @@ Understanding the system architecture helps with contributions:
 ```
 send.py     → Packages files using pak compression
 modify.py   → LLM interaction and pakdiff generation  
-show_answer.py → 3-window curses review interface
+pakdiff.py → 3-window curses review interface
 apply.py    → Safe pakdiff application to codebase
 revert.py   → File restoration from archive
 ```

@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from pakagent_config import logger
 from llm_loop import llm_interaction_loop
 from local_loop import local_application_loop
-from show_answer import show_answer
+from pakdiff import show_answer
 def cleanup_handler(signum, frame):
     """Handle cleanup on signal"""
     logger.info("\nReceived signal, cleaning up...")

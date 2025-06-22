@@ -10,7 +10,7 @@ PakAgent simplifies the process of getting LLM help with your code by automating
 
 **🚀 Professional Workflow** - Logging framework, git integration, and session management for reliable development processes.
 
-## The 5-Program Workflow
+## The 6-Program Workflow
 
 ### a) `send.py` - Package Files
 ```bash
@@ -30,9 +30,9 @@ Uses `/tmp/archive.txt` and generates:
 - `/tmp/answer` - LLM's analysis and explanation
 - `/tmp/fix` - Pakdiff format changes
 
-### c) `show_answer.py` - Review Changes
+### c) `pakdiff.py` - Review Changes
 ```bash
-./show_answer.py
+./pakdiff.py
 ```
 Opens 3-window terminal interface to review:
 - Window 1: LLM analysis (↑↓ to scroll)
@@ -54,6 +54,13 @@ Applies pakdiff changes to your codebase with verification.
 ./revert.py --force         # Skip confirmation
 ```
 Restores files to their original state from session archive if apply fails or you want to undo changes.
+
+### f) `pakview.py` - Navigate Pak Archives
+```bash
+./pakview.py                 # View current session archive
+./pakview.py archive.pak     # View specific pak file
+```
+3-window interface to explore pak archives: metadata, file list, and content view with navigation controls.
 
 ## 🔒 Security Features
 
@@ -96,16 +103,19 @@ export PAKAGENT_LOG_LEVEL=ERROR    # Errors only
 # 1. Package your Python and markdown files
 ./send.py *.py *.md
 
-# 2. Request changes from LLM
+# 2. View the packaged archive (optional)
+./pakview.py
+
+# 3. Request changes from LLM
 ./modify.py "add comprehensive logging and error handling"
 
-# 3. Review the proposed changes
-./show_answer.py
+# 4. Review the proposed changes
+./pakdiff.py
 
-# 4. Apply the changes to your codebase
+# 5. Apply the changes to your codebase
 ./apply.py
 
-# 5. If something goes wrong, revert to original state
+# 6. If something goes wrong, revert to original state
 ./revert.py
 ```
 
@@ -186,13 +196,13 @@ PAKAGENT_TMP_DIR=/custom/temp/path        # Override temp directory
 ```bash
 ./send.py
 ./modify.py "add basic logging"
-./show_answer.py
+./pakdiff.py
 ./apply.py
 
 # Refine further
 ./send.py  # Re-package updated code
 ./modify.py "improve the logging with structured format"
-./show_answer.py
+./pakdiff.py
 ./apply.py
 ```
 
@@ -205,7 +215,7 @@ PAKAGENT_TMP_DIR=/custom/temp/path        # Override temp directory
 ### Review Without Applying
 ```bash
 ./modify.py "add unit tests"
-./show_answer.py  # Review changes
+./pakdiff.py  # Review changes
 # Don't run apply.py if you don't like the changes
 ```
 
@@ -242,7 +252,7 @@ PakAgent follows the pak ecosystem philosophy with enterprise-grade enhancements
 ### Core Components
 - **send.py**: Secure file packaging with input sanitization and git integration
 - **modify.py**: LLM integration with API key protection and response validation
-- **show_answer.py**: Curses-based pakdiff visualization with safety checks
+- **pakdiff.py**: Curses-based pakdiff visualization with safety checks
 - **apply.py**: Secure pakdiff application with content validation and rollback
 - **revert.py**: Safe file restoration with confirmation workflows
 

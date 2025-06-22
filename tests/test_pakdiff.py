@@ -3,10 +3,10 @@ import os
 import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-import show_answer
+import pakdiff
 from pakagent_config import config
 
-class TestShowAnswer:
+class TestPakdiff:
     
     def setup_method(self):
         """Setup for each test method"""
@@ -29,13 +29,13 @@ class TestShowAnswer:
         """Test read_file when file exists"""
         config.answer_path.write_text("answer content\nline 2")
         
-        result = show_answer.read_file(str(config.answer_path))
+        result = pakdiff.read_file(str(config.answer_path))
         assert len(result) == 2
         assert "answer content" in result[0]
     
     def test_read_file_missing(self):
         """Test read_file when file is missing"""
-        result = show_answer.read_file("nonexistent.txt")
+        result = pakdiff.read_file("nonexistent.txt")
         assert len(result) == 1
         assert "Error: File not found" in result[0]
     
@@ -49,7 +49,7 @@ class TestShowAnswer:
             "    pass"
         ]
         
-        summary, content = show_answer.parse_pakdiff(pakdiff_lines)
+        summary, content = pakdiff.parse_pakdiff(pakdiff_lines)
         assert len(summary) == 1
         assert "test.py: test_function" in summary
     
@@ -57,7 +57,7 @@ class TestShowAnswer:
         """Test parsing empty pakdiff"""
         pakdiff_lines = []
         
-        summary, content = show_answer.parse_pakdiff(pakdiff_lines)
+        summary, content = pakdiff.parse_pakdiff(pakdiff_lines)
         assert len(summary) == 0
         assert len(content) == 0
     
@@ -74,7 +74,7 @@ class TestShowAnswer:
             "def func2(): pass"
         ]
         
-        summary, content = show_answer.parse_pakdiff(pakdiff_lines)
+        summary, content = pakdiff.parse_pakdiff(pakdiff_lines)
         assert len(summary) == 2
         assert "test1.py: func1" in summary
         assert "test2.py: func2" in summary
@@ -87,7 +87,7 @@ class TestShowAnswer:
         
         mock_newwin.return_value = MagicMock()
         
-        ui = show_answer.ShowAnswerUI(mock_stdscr)
+        ui = pakdiff.ShowAnswerUI(mock_stdscr)
         
         assert ui.height == 30
         assert ui.width == 120
@@ -96,14 +96,14 @@ class TestShowAnswer:
     def test_main_function_exists(self):
         """Test that main function exists and is callable"""
         assert hasattr(show_answer, 'main')
-        assert callable(show_answer.main)
+        assert callable(pakdiff.main)
     
-    @patch('show_answer.read_file')
+    @patch('pakdiff.read_file')
     def test_file_reading_integration(self, mock_read_file):
         """Test file reading integration"""
         mock_read_file.return_value = ["line 1", "line 2"]
         
-        result = show_answer.read_file("test.txt")
+        result = pakdiff.read_file("test.txt")
         
         assert len(result) == 2
         mock_read_file.assert_called_once_with("test.txt")
@@ -118,7 +118,7 @@ class TestShowAnswer:
             "some content"
         ]
         
-        summary, content = show_answer.parse_pakdiff(pakdiff_lines)
+        summary, content = pakdiff.parse_pakdiff(pakdiff_lines)
         # Should handle empty names gracefully
         assert len(summary) >= 0
     
@@ -130,19 +130,19 @@ class TestShowAnswer:
         test_file.chmod(0o000)
         
         try:
-            result = show_answer.read_file(str(test_file))
+            result = pakdiff.read_file(str(test_file))
             # Should return error message, not crash
             assert len(result) >= 1
         finally:
             test_file.chmod(0o644)  # Restore permissions for cleanup
     
-    @patch('show_answer.curses.wrapper')
+    @patch('pakdiff.curses.wrapper')
     @patch('os.path.exists')
     def test_main_with_existing_files(self, mock_exists, mock_wrapper):
         """Test main function when files exist"""
         mock_exists.return_value = True
         
-        show_answer.main()
+        pakdiff.main()
         
         mock_wrapper.assert_called_once()
     
@@ -152,7 +152,7 @@ class TestShowAnswer:
         """Test main function when files are missing"""
         mock_exists.return_value = False
         
-        show_answer.main()
+        pakdiff.main()
         
         mock_exit.assert_called_once_with(1)
     
@@ -162,7 +162,7 @@ class TestShowAnswer:
         assert hasattr(show_answer, 'ShowAnswerUI')
         
         # Test that key methods exist
-        ui_class = show_answer.ShowAnswerUI
+        ui_class = pakdiff.ShowAnswerUI
         assert hasattr(ui_class, '__init__')
         assert hasattr(ui_class, 'setup_windows')
     
@@ -172,7 +172,7 @@ class TestShowAnswer:
         test_file = Path(self.test_dir) / "test_endings.txt"
         test_file.write_text("line1\nline2\r\nline3\r")
         
-        result = show_answer.read_file(str(test_file))
+        result = pakdiff.read_file(str(test_file))
         
         # Should handle different line endings gracefully
         assert len(result) >= 1
@@ -184,7 +184,7 @@ class TestShowAnswer:
         assert curses is not None
         
         # Test that ShowAnswerUI can be instantiated structure-wise
-        assert show_answer.ShowAnswerUI is not None
+        assert pakdiff.ShowAnswerUI is not None
     
     def test_pakdiff_content_extraction(self):
         """Test pakdiff content extraction"""
@@ -197,7 +197,7 @@ class TestShowAnswer:
             "    return 42"
         ]
         
-        summary, content = show_answer.parse_pakdiff(pakdiff_lines)
+        summary, content = pakdiff.parse_pakdiff(pakdiff_lines)
         
         assert "test.py: my_function" in summary
         key = "test.py: my_function"
@@ -211,7 +211,7 @@ class TestShowAnswer:
         assert hasattr(config, 'fix_path')
         
         # Test file reading with actual paths (even if files don't exist)
-        result = show_answer.read_file(str(config.answer_path))
+        result = pakdiff.read_file(str(config.answer_path))
         assert isinstance(result, list)
         assert len(result) >= 1
     

@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 a = Analysis(
-    ['show_answer.py', 'pakagent_config.py'],
+    ['pakview.py', 'pakagent_config.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -20,7 +20,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='pakdiff',
+    name='pakview',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

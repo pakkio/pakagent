@@ -6,19 +6,21 @@ PakAgent is a secure, enterprise-grade 5-program workflow system that simplifies
 **Security-First Design**: Built with comprehensive input sanitization, API key protection, and code validation to ensure safe operation in any environment.
 
 ## Architecture
-The system consists of 5 secure, enterprise-ready programs that work together:
+The system consists of 6 secure, enterprise-ready programs that work together:
 
 1. **send.py** - Securely packages files using pak tool compression with input sanitization
 2. **modify.py** - Gets LLM-generated changes with API key protection and validation
-3. **show_answer.py** - 3-window curses interface for safely reviewing changes
+3. **pakdiff.py** - 3-window curses interface for safely reviewing changes
 4. **apply.py** - Securely applies pakdiff changes with content validation and verification
 5. **revert.py** - Safely restores original files from session archive with confirmations
+6. **pakview.py** - 3-window curses interface for navigating pak archives
 
 ## Workflow
 ```bash
 ./send.py *.py *.md              # Package files → /tmp/archive.txt
+./pakview.py                     # View packaged archive (optional)
 ./modify.py "add logging"        # LLM changes → /tmp/answer + /tmp/fix
-./show_answer.py                 # Review changes in 3-window interface
+./pakdiff.py                     # Review changes in 3-window interface
 ./apply.py                       # Apply changes to codebase
 ./revert.py                      # Restore original files if needed
 ```
@@ -35,7 +37,7 @@ The system consists of 5 secure, enterprise-ready programs that work together:
 ## File Structure
 - `send.py` - Secure file packaging with input sanitization and git integration
 - `modify.py` - LLM interaction with API key protection and response validation
-- `show_answer.py` - Interactive change review interface with safety checks
+- `pakdiff.py` - Interactive change review interface with safety checks
 - `apply.py` - Secure pakdiff application with content validation
 - `revert.py` - Safe file restoration with confirmation workflows
 - `pakagent_config.py` - Centralized security functions and logging framework
@@ -80,7 +82,7 @@ Uses `.env` file for:
 # Basic workflow test
 ./send.py
 ./modify.py "add comments to methods"
-./show_answer.py
+./pakdiff.py
 ./apply.py --force
 
 # File-specific test
@@ -88,7 +90,7 @@ Uses `.env` file for:
 ./modify.py "add input validation"
 
 # Review without applying
-./modify.py "refactor for clarity" && ./show_answer.py
+./modify.py "refactor for clarity" && ./pakdiff.py
 
 # Revert if something goes wrong
 ./revert.py --force
