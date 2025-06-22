@@ -52,7 +52,7 @@ def send_files(file_patterns):
         pak_args.append(".")
     if pak_extensions:
         pak_args.extend(["-t", ",".join(pak_extensions)])
-    pak_args.extend(["-c", "smart", "-o", "/tmp/archive.txt"])
+    pak_args.extend(["-c", "medium", "-o", "/tmp/archive.txt"])
     print(f"Packaging files to /tmp/archive.txt...")
     success, output = run_pak_command(pak_args)
     if success:
