@@ -22,7 +22,7 @@ def send_files(file_patterns):
             logger.error(f"❌ Invalid file pattern '{pattern}': {e}")
             return False
     
-    logger.info(f"Collecting files matching: {', '.join(sanitized_patterns)}")
+    logger.info(f"Collecting: {', '.join(sanitized_patterns)}")
     
     # Show git status and suggest workflow
     config.suggest_git_workflow()
@@ -45,19 +45,19 @@ def send_files(file_patterns):
         pak_args.extend(["-t", ",".join(pak_extensions)])
     pak_args.extend(["-c", "medium", "-o", str(config.archive_path)])
     
-    logger.info(f"Packaging files to {config.archive_path}...")
+    logger.info(f"Packaging to {config.archive_path}...")
     success, output = run_pak_command(pak_args)
     
     if success:
         if config.archive_path.exists():
             size = config.archive_path.stat().st_size
-            logger.info(f"✅ Archive created: {config.archive_path} ({size:,} bytes)")
+            logger.info(f"✅ Archive created: {size:,} bytes")
             
             # Safe file preview
             def preview_archive():
                 with open(config.archive_path, 'r') as f:
                     lines = f.readlines()[:10]
-                    logger.info("\nArchive preview (first 10 lines):")
+                    logger.info("\nPreview (first 10 lines):")
                     for i, line in enumerate(lines, 1):
                         logger.info(f"{i:2}: {line.rstrip()}")
                     if len(lines) == 10:
@@ -76,14 +76,14 @@ def main():
     if len(sys.argv) == 1:
         # Default: let send_files handle default patterns
         file_patterns = []
-        logger.info("Using default patterns: *.py *.md")
+        logger.info("Using defaults: *.py *.md")
     else:
         file_patterns = sys.argv[1:]
-        logger.info(f"Using specified patterns: {' '.join(file_patterns)}")
+        logger.info(f"Using: {' '.join(file_patterns)}")
     success = send_files(file_patterns)
     if success:
-        logger.info(f"\n🚀 Ready for next step: python modify.py 'your modification request'")
-        logger.info(f"📁 Session directory: {config.session_dir}")
+        logger.info(f"\n🚀 Ready for: pakmod 'your modification request'")
+        logger.info(f"📁 Session: {config.session_dir}")
     else:
         sys.exit(1)
 if __name__ == "__main__":
