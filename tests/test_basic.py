@@ -24,19 +24,19 @@ class TestBasicFunctionality:
     
     def test_imports_work(self):
         """Test that all core modules can be imported"""
-        import send
-        import modify
-        import apply
-        import revert
-        import show_answer
+        import prepare
+        import pakmod
+        import pakapply
+        import pakrestore
+        import pakdiff
         import pakagent_config
         
         # Check main functions exist
-        assert hasattr(send, 'main')
-        assert hasattr(modify, 'main')
-        assert hasattr(apply, 'main')
-        assert hasattr(revert, 'main')
-        assert hasattr(show_answer, 'main')
+        assert hasattr(prepare, 'main')
+        assert hasattr(pakmod, 'main')
+        assert hasattr(pakapply, 'main')
+        assert hasattr(pakrestore, 'main')
+        assert hasattr(pakdiff, 'main')
     
     def test_config_initialization(self):
         """Test config can be initialized"""
@@ -49,35 +49,35 @@ class TestBasicFunctionality:
         assert hasattr(config, 'answer_path')
         assert hasattr(config, 'fix_path')
     
-    def test_send_file_patterns(self):
-        """Test send file pattern processing"""
-        import send
+    def test_prepare_file_patterns(self):
+        """Test prepare file pattern processing"""
+        import prepare
         
         # Test that send_files function exists and is callable
-        assert hasattr(send, 'send_files')
-        assert callable(send.send_files)
+        assert hasattr(prepare, 'send_files')
+        assert callable(prepare.send_files)
     
-    def test_modify_text_classification(self):
-        """Test modify text classification"""
-        import modify
+    def test_pakmod_text_classification(self):
+        """Test pakmod text classification"""
+        import pakmod
         
         # Test classify_request function
-        assert hasattr(modify, 'classify_request')
+        assert hasattr(pakmod, 'classify_request')
         
         # Test with obvious text requests
-        text_request = modify.classify_request("what do you think about this?")
+        text_request = pakmod.classify_request("what do you think about this?")
         assert isinstance(text_request, bool)
         
-        code_request = modify.classify_request("add logging to the function")
+        code_request = pakmod.classify_request("add logging to the function")
         assert isinstance(code_request, bool)
     
-    def test_modify_llm_response_parsing(self):
+    def test_pakmod_llm_response_parsing(self):
         """Test LLM response parsing"""
-        import modify
+        import pakmod
         
         # Test basic response parsing
         simple_response = "This is a simple text response"
-        answer, pakdiff = modify.parse_llm_response(simple_response)
+        answer, pakdiff = pakmod.parse_llm_response(simple_response)
         assert answer.strip() == simple_response.strip()
         # pakdiff might contain the response if no PAKDIFF block found
         assert isinstance(pakdiff, str)
@@ -91,45 +91,45 @@ class TestBasicFunctionality:
         +new line
         PAKDIFF_END
         """
-        answer, pakdiff = modify.parse_llm_response(response_with_pakdiff)
+        answer, pakdiff = pakmod.parse_llm_response(response_with_pakdiff)
         assert "Analysis" in answer
         assert "@@ file.py @@" in pakdiff
     
-    def test_apply_file_checking(self):
-        """Test apply file existence checking"""
-        import apply
+    def test_pakapply_file_checking(self):
+        """Test pakapply file existence checking"""
+        import pakapply
         
         # Test check_files_exist function
-        assert hasattr(apply, 'check_files_exist')
-        assert callable(apply.check_files_exist)
+        assert hasattr(pakapply, 'check_files_exist')
+        assert callable(pakapply.check_files_exist)
     
-    def test_revert_archive_checking(self):
-        """Test revert archive checking"""
-        import revert
+    def test_pakrestore_archive_checking(self):
+        """Test pakrestore archive checking"""
+        import pakrestore
         
         # Test check_archive function
-        assert hasattr(revert, 'check_archive')
-        assert callable(revert.check_archive)
+        assert hasattr(pakrestore, 'check_archive')
+        assert callable(pakrestore.check_archive)
     
-    def test_show_answer_file_reading(self):
-        """Test show_answer file reading"""
-        import show_answer
+    def test_pakdiff_file_reading(self):
+        """Test pakdiff file reading"""
+        import pakdiff
         
         # Test read_file function
-        assert hasattr(show_answer, 'read_file')
+        assert hasattr(pakdiff, 'read_file')
         
         # Test with non-existent file
-        result = show_answer.read_file("nonexistent.txt")
+        result = pakdiff.read_file("nonexistent.txt")
         assert isinstance(result, list)
         assert len(result) > 0
         assert "Error" in result[0] or "not found" in result[0]
     
-    def test_show_answer_pakdiff_parsing(self):
-        """Test show_answer pakdiff parsing"""
-        import show_answer
+    def test_pakdiff_pakdiff_parsing(self):
+        """Test pakdiff pakdiff parsing"""
+        import pakdiff
         
         # Test parse_pakdiff function
-        assert hasattr(show_answer, 'parse_pakdiff')
+        assert hasattr(pakdiff, 'parse_pakdiff')
         
         pakdiff_lines = [
             "FILE: test.py",
@@ -139,7 +139,7 @@ class TestBasicFunctionality:
             "    pass"
         ]
         
-        summary, content = show_answer.parse_pakdiff(pakdiff_lines)
+        summary, content = pakdiff.parse_pakdiff(pakdiff_lines)
         assert isinstance(summary, list)
         assert isinstance(content, dict)
     

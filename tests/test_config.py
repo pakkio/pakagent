@@ -148,7 +148,7 @@ class TestPakAgentConfig:
     
     def test_safe_file_operation_success(self):
         """Test successful safe file operation"""
-        def operation():
+        def operation(path):
             return "success"
         
         result = pakagent_config.safe_file_operation(operation, "test operation")
