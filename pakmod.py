@@ -7,6 +7,7 @@ import os
 import sys
 import requests
 import re
+import argparse
 from pathlib import Path
 from dotenv import load_dotenv
 from pakagent_config import config, check_required_files, get_requests_session, logger, mask_sensitive_data, validate_pakdiff_content
@@ -209,7 +210,12 @@ def save_outputs(answer_text, pakdiff_text):
         # Save pakdiff file
         with open(config.fix_path, "w") as f:
             f.write(pakdiff_text)
-        logger.info(f"✅ Saved pakdiff to {config.fix_path}")
+        
+        # Report accurate status based on content
+        if pakdiff_text.strip():
+            logger.info(f"✅ Saved pakdiff to {config.fix_path}")
+        else:
+            logger.warning(f"⚠️  No valid pakdiff generated - empty file saved to {config.fix_path}")
         return True
     except Exception as e:
         masked_error = mask_sensitive_data(str(e))
@@ -245,16 +251,19 @@ def call_llm(instructions, archive_content):
     except Exception:
         return None
 
-def process_instructions(instruction):
+def process_instructions(instruction, force_pakdiff=False):
     """High-level processing: classify, call LLM, parse, and save outputs."""
-    # Classify request
-    is_question = classify_request(instruction)
+    # Classify request (override if --pakdiff is used)
+    is_question = False if force_pakdiff else classify_request(instruction)
     # Load code archive
     archive_content = read_archive()
     if archive_content is None:
         return False
     # Get LLM response
-    response = call_llm(instruction, archive_content)
+    if force_pakdiff:
+        response = send_to_llm(archive_content, instruction, is_question=False)
+    else:
+        response = call_llm(instruction, archive_content)
     if not response:
         return False
     # Parse response into analysis and pakdiff
@@ -263,16 +272,34 @@ def process_instructions(instruction):
     return save_outputs(answer_text, pakdiff_text)
 def main():
     """Main entrypoint for modify CLI."""
+    parser = argparse.ArgumentParser(
+        description="Generate code modifications using LLM",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "instruction", 
+        nargs="*", 
+        help="Modification instruction (if not provided, will prompt)"
+    )
+    parser.add_argument(
+        "--pakdiff", 
+        action="store_true", 
+        help="Force pakdiff format output (skips text classification)"
+    )
+    
+    args = parser.parse_args()
+    
     # Determine instruction: CLI args or interactive input
-    if len(sys.argv) < 2:
+    if not args.instruction:
         try:
             instruction = input("Enter modification request: ").strip()
         except (KeyboardInterrupt, EOFError):
             return
     else:
-        instruction = " ".join(sys.argv[1:])
+        instruction = " ".join(args.instruction)
+    
     # Delegate to process_instructions
-    process_instructions(instruction)
+    process_instructions(instruction, force_pakdiff=args.pakdiff)
 
 if __name__ == "__main__":
     main()
