@@ -1,7 +1,7 @@
 """
 Program b) modify "try doing this"
-Uses /tmp/archive.txt and implements via LLM what is asked,
-receiving back from LLM in structured form /tmp/answer and /tmp/fix (pakdiff format)
+Uses archive and implements via LLM what is asked,
+receiving back from LLM in structured form answer and fix (pakdiff format)
 """
 import os
 import sys
@@ -9,15 +9,14 @@ import requests
 import re
 from pathlib import Path
 from dotenv import load_dotenv
+from pakagent_config import config, check_required_files
 def read_archive():
     """Read the archive file created by send.py"""
-    archive_path = Path("/tmp/archive.txt")
-    if not archive_path.exists():
-        print("❌ Archive file /tmp/archive.txt not found.")
+    if not check_required_files(config.archive_path):
         print("Run 'python send.py' first to create the archive.")
         return None
     try:
-        with open(archive_path, 'r') as f:
+        with open(config.archive_path, 'r') as f:
             content = f.read()
         print(f"📄 Loaded archive: {len(content):,} characters")
         return content
@@ -185,14 +184,14 @@ def parse_llm_response(response_text, is_question=False):
         pakdiff_content = implementation_section.strip()
     return analysis, pakdiff_content
 def save_outputs(answer_text, pakdiff_text):
-    """Save answer and pakdiff to /tmp/ files"""
+    """Save answer and pakdiff to session files"""
     try:
-        with open("/tmp/answer", "w") as f:
+        with open(config.answer_path, "w") as f:
             f.write(answer_text)
-        print("✅ Saved analysis to /tmp/answer")
-        with open("/tmp/fix", "w") as f:
+        print(f"✅ Saved analysis to {config.answer_path}")
+        with open(config.fix_path, "w") as f:
             f.write(pakdiff_text)
-        print("✅ Saved pakdiff to /tmp/fix")
+        print(f"✅ Saved pakdiff to {config.fix_path}")
         return True
     except Exception as e:
         print(f"❌ Error saving outputs: {e}")

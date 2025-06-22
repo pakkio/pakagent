@@ -1,46 +1,24 @@
 #!/usr/bin/env python3
 """
 Program e) revert - Restore original files from archive
-Uses pak -x /tmp/archive.txt to restore files to their original state
+Uses pak -x archive.txt to restore files to their original state
 before any pakdiff modifications were applied.
 """
 import os
 import sys
 import subprocess
 from pathlib import Path
-
-def check_pak_tool():
-    """Check if pak tool is available"""
-    try:
-        result = subprocess.run(['pak', '--version'], 
-                              capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            print(f"✅ Pak tool found: {result.stdout.strip()}")
-            return True
-        else:
-            print("❌ Pak tool not working properly")
-            return False
-    except FileNotFoundError:
-        print("❌ Pak tool not found in PATH")
-        print("Install pak tool: https://github.com/your-pak-repo")
-        return False
-    except subprocess.TimeoutExpired:
-        print("❌ Pak tool timeout")
-        return False
-    except Exception as e:
-        print(f"❌ Error checking pak tool: {e}")
-        return False
+from pakagent_config import config, run_pak_command
 
 def check_archive():
     """Check if archive file exists"""
-    archive_path = Path("/tmp/archive.txt")
-    if not archive_path.exists():
-        print("❌ Archive file /tmp/archive.txt not found")
+    if not config.archive_path.exists():
+        print(f"❌ Archive file {config.archive_path} not found")
         print("Run 'python send.py' first to create the archive")
         return False
     
     try:
-        size = archive_path.stat().st_size
+        size = config.archive_path.stat().st_size
         print(f"📦 Archive found: {size:,} bytes")
         return True
     except Exception as e:
@@ -64,42 +42,33 @@ def confirm_revert():
 
 def revert_files():
     """Revert files using pak -x"""
-    try:
-        print("🔄 Reverting files from archive...")
-        result = subprocess.run(['pak', '-x', '/tmp/archive.txt'], 
-                              capture_output=True, text=True, timeout=60)
-        
-        if result.returncode == 0:
-            print("✅ Files successfully reverted to original state")
-            if result.stdout.strip():
-                print(f"📄 Output: {result.stdout.strip()}")
-            return True
-        else:
-            print(f"❌ Pak extraction failed (exit code {result.returncode})")
-            if result.stderr:
-                print(f"Error: {result.stderr}")
-            return False
-            
-    except subprocess.TimeoutExpired:
-        print("❌ Pak extraction timeout (60s)")
-        return False
-    except Exception as e:
-        print(f"❌ Error running pak extraction: {e}")
-        return False
+    print("🔄 Reverting files from archive...")
+    args = ["-x", str(config.archive_path)]
+    success, output = run_pak_command(args, timeout=60)
+    
+    if success:
+        print("✅ Files successfully reverted to original state")
+        if output.strip():
+            print(f"📄 Output: {output.strip()}")
+    
+    return success
 
 def main():
     """Main function"""
     print("🔙 PakAgent Revert Tool")
-    print("Restores files to their original state from /tmp/archive.txt")
+    print(f"Restores files to their original state from {config.archive_path}")
     
     # Check for --force flag
     force = '--force' in sys.argv
     
-    if not check_pak_tool():
-        sys.exit(1)
-    
     if not check_archive():
         sys.exit(1)
+    
+    # Show git status
+    if config.is_git_repo:
+        clean, status = config.check_git_status()
+        if not clean:
+            print(f"\n⚠️  Current git status:\n{status}")
     
     # Confirm operation unless --force is used
     if not force and not confirm_revert():
@@ -109,8 +78,9 @@ def main():
     if revert_files():
         print("\n🚀 Revert completed successfully!")
         print("💡 Next steps:")
-        print("   git status           # Check what changed")
-        print("   git diff             # Review the changes")
+        if config.is_git_repo:
+            print("   git status           # Check what changed")
+            print("   git diff             # Review the changes")
         print("   python send.py ...   # Create new archive if needed")
     else:
         print("❌ Revert failed")

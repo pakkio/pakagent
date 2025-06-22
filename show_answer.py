@@ -1,6 +1,7 @@
 import curses
 import os
 from typing import List, Tuple, Dict, Any
+from pakagent_config import config
 
 def read_file(filename: str) -> List[str]:
     """Reads a file and returns its content as a list of lines."""
@@ -100,8 +101,8 @@ class ShowAnswerUI:
         
     def load_data(self):
         """Load answer and pakdiff data."""
-        self.answer_lines = read_file("/tmp/answer")
-        pakdiff_lines = read_file("/tmp/fix")
+        self.answer_lines = read_file(str(config.answer_path))
+        pakdiff_lines = read_file(str(config.fix_path))
         self.pakdiff_summary, self.method_content = parse_pakdiff(pakdiff_lines)
         
     def draw_window(self, win, title: str, content: List[str], start_line: int, start_col: int = 0, highlight_line: int = -1):
@@ -220,16 +221,16 @@ def main():
         ui = ShowAnswerUI(stdscr)
         ui.load_data()
         
-        # Load archive from /tmp/archive.txt if it exists
+        # Load archive if it exists
         try:
-            archive_lines = read_file("/tmp/archive.txt")
+            archive_lines = read_file(str(config.archive_path))
             if archive_lines and not archive_lines[0].startswith("Error:"):
                 ui.answer_lines = archive_lines + ["", "=== PAKDIFF ANSWER ===", ""] + ui.answer_lines
         except:
             pass
         
         if not ui.answer_lines or not ui.pakdiff_summary:
-            stdscr.addstr(0, 0, "Error: Could not load /tmp/answer or /tmp/fix files")
+            stdscr.addstr(0, 0, f"Error: Could not load {config.answer_path} or {config.fix_path} files")
             stdscr.refresh()
             stdscr.getch()
             return

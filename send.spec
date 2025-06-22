@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 a = Analysis(
-    ['send.py'],
+    ['send.py', 'pakagent_config.py'],
     pathex=[],
     binaries=[],
     datas=[],
