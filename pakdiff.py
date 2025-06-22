@@ -145,10 +145,18 @@ class ShowAnswerUI:
         self.draw_window(self.summary_win, "Pakdiff Summary", self.pakdiff_summary, 
                         self.summary_start, 0, self.selected_method)
         
-        method_content = self.get_current_method_content()
-        self.draw_window(self.method_win, "Method Detail", method_content, self.method_start, self.method_col)
+        # Show current method/file info in method window title
+        method_title = "Method Detail"
+        if self.pakdiff_summary and self.selected_method < len(self.pakdiff_summary):
+            current_item = self.pakdiff_summary[self.selected_method]
+            method_title = f"Detail: {current_item}"
         
-        help_text = "Controls: ↑↓←→(answer) PgUp/PgDn(summary) +/-*/(method) a/z s/x d/c(nav) q(uit)"
+        method_content = self.get_current_method_content()
+        self.draw_window(self.method_win, method_title, method_content, self.method_start, self.method_col)
+        
+        # Show session file info in status bar
+        session_info = f" | Files: {os.path.basename(config.answer_path)}, {os.path.basename(config.fix_path)}"
+        help_text = f"Controls: ↑↓←→(answer) PgUp/PgDn(summary) +/-*/(method) a/z s/x d/c(nav) q(uit){session_info}"
         try:
             self.stdscr.addstr(self.height - 1, 0, help_text[:self.width - 1])
         except curses.error:

@@ -180,15 +180,22 @@ class PakNavUI:
         self.draw_window(self.file_list_win, "Files", self.file_list_lines, 
                         self.file_list_start, 0, highlight_file)
         
-        self.draw_window(self.file_content_win, "File Content", self.current_file_content, 
+        # Show file path in window title
+        file_title = "File Content"
+        if self.files_data and self.selected_file < len(self.files_data):
+            file_path = self.files_data[self.selected_file].get('path', 'unknown')
+            file_title = f"File: {file_path}"
+        
+        self.draw_window(self.file_content_win, file_title, self.current_file_content, 
                         self.file_content_start, self.file_content_col)
         
-        # Show current file name in status
+        # Show current file name and archive location in status
         current_file = ""
+        archive_info = f" | Archive: {os.path.basename(self.pak_file)}"
         if self.files_data and self.selected_file < len(self.files_data):
             current_file = f" | File: {self.files_data[self.selected_file].get('path', 'unknown')}"
         
-        help_text = f"Controls: ↑↓←→(meta) PgUp/PgDn(files) +/-*/(content) a/z s/x d/c(nav) q(uit){current_file}"
+        help_text = f"Controls: ↑↓←→(meta) PgUp/PgDn(files) +/-*/(content) a/z s/x d/c(nav) q(uit){archive_info}{current_file}"
         try:
             self.stdscr.addstr(self.height - 1, 0, help_text[:self.width - 1])
         except curses.error:
@@ -267,7 +274,7 @@ class PakNavUI:
 def test_mode(pak_file: str):
     """Test mode for non-interactive environments."""
     print(f"=== PakView Test Mode ===")
-    print(f"Loading: {pak_file}")
+    print(f"Archive Location: {os.path.abspath(pak_file)}")
     print()
     
     metadata, files_data = read_pak_archive(pak_file)
