@@ -29,26 +29,31 @@ def classify_request(instructions):
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         # Fallback to keyword detection if no API key
-        question_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come']
-        return any(keyword in instructions.lower() for keyword in question_keywords)
+        text_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come', 'ascii', 'schema', 'diagram', 'visualize', 'draw', 'documentation', 'docs']
+        return any(keyword in instructions.lower() for keyword in text_keywords)
     
-    classification_prompt = f"""Classify this request as either "QUESTION" or "CODE_CHANGE".
+    classification_prompt = f"""Classify this request as either "TEXT_RESPONSE" or "CODE_CHANGE".
 
 REQUEST: {instructions}
 
 Rules:
-- QUESTION: User is asking for explanation, analysis, opinion, or information
-- CODE_CHANGE: User wants to modify, add, fix, or implement code
+- TEXT_RESPONSE: User wants explanation, analysis, opinion, information, diagrams, schemas, ASCII art, documentation, or any visual/textual output
+- CODE_CHANGE: User wants to modify, add, fix, or implement actual code files
 
 Examples:
-- "cosa ne pensi" → QUESTION
-- "what do you think" → QUESTION  
-- "explain this code" → QUESTION
+- "cosa ne pensi" → TEXT_RESPONSE
+- "what do you think" → TEXT_RESPONSE  
+- "explain this code" → TEXT_RESPONSE
+- "make an ascii schema" → TEXT_RESPONSE
+- "draw a diagram" → TEXT_RESPONSE
+- "create documentation" → TEXT_RESPONSE
+- "visualize the architecture" → TEXT_RESPONSE
 - "add logging" → CODE_CHANGE
 - "fix the bug" → CODE_CHANGE
 - "implement authentication" → CODE_CHANGE
+- "refactor this method" → CODE_CHANGE
 
-Respond with only: QUESTION or CODE_CHANGE"""
+Respond with only: TEXT_RESPONSE or CODE_CHANGE"""
 
     try:
         response = requests.post(
@@ -68,15 +73,15 @@ Respond with only: QUESTION or CODE_CHANGE"""
         if response.status_code == 200:
             result = response.json()
             classification = result["choices"][0]["message"]["content"].strip()
-            return classification == "QUESTION"
+            return classification == "TEXT_RESPONSE"
         else:
             # Fallback to keyword detection
-            question_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come']
-            return any(keyword in instructions.lower() for keyword in question_keywords)
+            text_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come', 'ascii', 'schema', 'diagram', 'visualize', 'draw', 'documentation', 'docs']
+            return any(keyword in instructions.lower() for keyword in text_keywords)
     except Exception:
         # Fallback to keyword detection
-        question_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come']
-        return any(keyword in instructions.lower() for keyword in question_keywords)
+        text_keywords = ['what', 'why', 'how', 'explain', 'describe', 'think', 'opinion', 'pensi', 'cosa', 'quale', 'perché', 'come', 'ascii', 'schema', 'diagram', 'visualize', 'draw', 'documentation', 'docs']
+        return any(keyword in instructions.lower() for keyword in text_keywords)
 
 def send_to_llm(archive_content, instructions, is_question=False):
     """Send modification request to LLM"""
@@ -87,17 +92,17 @@ def send_to_llm(archive_content, instructions, is_question=False):
         return None
     
     if is_question:
-        # For questions, just ask for analysis without pakdiff
-        prompt = f"""You are an expert code assistant. Please analyze the provided codebase and answer the following question.
+        # For text responses (questions, schemas, diagrams, etc.), just ask for analysis without pakdiff
+        prompt = f"""You are an expert code assistant. Please analyze the provided codebase and respond to the following request.
 
-QUESTION: {instructions}
+REQUEST: {instructions}
 
-Please provide a detailed analysis and answer based on the codebase provided below.
+Please provide a detailed response based on the codebase provided below. If asked for diagrams, schemas, or ASCII art, feel free to create them using text characters.
 
 CODEBASE:
 {archive_content}
 
-Please provide your analysis:"""
+Please provide your response:"""
     else:
         # For modifications, use the full pakdiff format
         prompt = f"""You are an expert code assistant. I need you to analyze the provided codebase and implement the requested changes.
@@ -206,10 +211,33 @@ def main():
     instruction = " ".join(sys.argv[1:])
     print(f"🎯 Task: {instruction}")
     
+    # Debug API configuration
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    model = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3-haiku:beta")
+    max_tokens = os.environ.get("OPENROUTER_MAX_TOKENS", "4000")
+    temperature = os.environ.get("OPENROUTER_TEMPERATURE", "0.1")
+    
+    if api_key:
+        masked_key = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "***masked***"
+        print(f"🔑 API Key: {masked_key}")
+        print(f"🤖 Model: {model}")
+        print(f"🎛️  Max Tokens: {max_tokens}, Temperature: {temperature}")
+        print("💡 To change model/settings, edit .env file:")
+        print("   OPENROUTER_MODEL=anthropic/claude-3-sonnet:beta")
+        print("   OPENROUTER_MAX_TOKENS=8000")
+        print("   OPENROUTER_TEMPERATURE=0.2")
+    else:
+        print("❌ OPENROUTER_API_KEY not found")
+        print("💡 Create .env file with:")
+        print("   OPENROUTER_API_KEY=your_key_here")
+        print("   OPENROUTER_MODEL=anthropic/claude-3-haiku:beta")
+        print("   OPENROUTER_MAX_TOKENS=4000")
+        print("   OPENROUTER_TEMPERATURE=0.1")
+    
     # Use LLM to classify the request
     print("🔍 Classifying request type...")
     is_question = classify_request(instruction)
-    print(f"📋 Request type: {'Question' if is_question else 'Code modification'}")
+    print(f"📋 Request type: {'Text response' if is_question else 'Code modification'}")
     
     archive_content = read_archive()
     if not archive_content:
@@ -225,9 +253,9 @@ def main():
         print(response)
         sys.exit(1)
     
-    # For questions, pakdiff_text will be empty
+    # For text responses, pakdiff_text will be empty
     if is_question and not pakdiff_text:
-        print("ℹ️  Question detected - no pakdiff generated")
+        print("ℹ️  Text response detected - no pakdiff generated")
     if save_outputs(answer_text, pakdiff_text):
         print("\n🚀 Success! Next steps:")
         print("  python show_answer.py  # Review the changes")

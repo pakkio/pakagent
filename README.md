@@ -44,6 +44,13 @@ Controls: `a/z` (top/bottom), `s/x` (navigate), `d/c` (jump), `q` (quit)
 ```
 Applies pakdiff changes to your codebase with verification.
 
+### e) `revert.py` - Restore Original Files
+```bash
+./revert.py                  # Interactive confirmation
+./revert.py --force         # Skip confirmation
+```
+Restores files to their original state from `/tmp/archive.txt` if apply fails or you want to undo changes.
+
 ## Complete Example Workflow
 
 ```bash
@@ -58,6 +65,9 @@ Applies pakdiff changes to your codebase with verification.
 
 # 4. Apply the changes to your codebase
 ./apply.py
+
+# 5. If something goes wrong, revert to original state
+./revert.py
 ```
 
 ## Prerequisites

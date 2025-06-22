@@ -4,12 +4,13 @@
 PakAgent is a 4-program workflow system that simplifies LLM-assisted code development by eliminating the copy-paste workflow. It uses the pak tool for semantic compression and pakdiff format for precise method-level code changes.
 
 ## Architecture
-The system consists of 4 simple programs that work together:
+The system consists of 5 simple programs that work together:
 
 1. **send.py** - Packages files using pak tool compression
 2. **modify.py** - Gets LLM-generated changes in pakdiff format
 3. **show_answer.py** - 3-window curses interface for reviewing changes
 4. **apply.py** - Safely applies pakdiff changes to codebase
+5. **revert.py** - Restores original files from archive if apply fails
 
 ## Workflow
 ```bash
@@ -17,6 +18,7 @@ The system consists of 4 simple programs that work together:
 ./modify.py "add logging"        # LLM changes → /tmp/answer + /tmp/fix
 ./show_answer.py                 # Review changes in 3-window interface
 ./apply.py                       # Apply changes to codebase
+./revert.py                      # Restore original files if needed
 ```
 
 ## Key Technologies
@@ -31,6 +33,7 @@ The system consists of 4 simple programs that work together:
 - `modify.py` - LLM interaction and pakdiff generation
 - `show_answer.py` - Interactive change review interface
 - `apply.py` - Safe pakdiff application
+- `revert.py` - File restoration from archive
 - `analysys.md` - Complete system specification
 - `README.md` - User documentation
 
@@ -68,6 +71,9 @@ Uses `.env` file for:
 
 # Review without applying
 ./modify.py "refactor for clarity" && ./show_answer.py
+
+# Revert if something goes wrong
+./revert.py --force
 ```
 
 ## Integration Points

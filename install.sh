@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # install.sh - Build and install pakagent programs to ~/bin
-# Creates four binaries: send, modify, pakdiff, apply
+# Creates five binaries: send, modify, pakdiff, apply, revert
 
 set -e  # Exit on error
 
@@ -29,18 +29,23 @@ pyinstaller show_answer.spec --distpath dist --workpath build
 echo "Building apply..."
 pyinstaller apply.spec --distpath dist --workpath build
 
+echo "Building revert..."
+pyinstaller revert.spec --distpath dist --workpath build
+
 # Copy to ~/bin
 echo "📦 Installing binaries to ~/bin..."
 cp dist/send ~/bin/
 cp dist/modify ~/bin/
 cp dist/pakdiff ~/bin/
 cp dist/apply ~/bin/
+cp dist/revert ~/bin/
 
 # Make executable
 chmod +x ~/bin/send
 chmod +x ~/bin/modify  
 chmod +x ~/bin/pakdiff
 chmod +x ~/bin/apply
+chmod +x ~/bin/revert
 
 echo "✅ Installation complete!"
 echo ""
@@ -49,6 +54,7 @@ echo "  send     - Package files for LLM"
 echo "  modify   - Get LLM changes in pakdiff format"
 echo "  pakdiff  - Review changes in 3-window interface"
 echo "  apply    - Apply pakdiff changes to codebase"
+echo "  revert   - Restore original files from archive"
 echo ""
 echo "Make sure ~/bin is in your PATH:"
 echo "  export PATH=\"\$HOME/bin:\$PATH\""
