@@ -10,11 +10,12 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
+from pakagent_config import logger
 def run_pak_command(args, cwd=None):
     """Execute pak command with given arguments"""
     try:
         cmd = ["pak"] + args
-        print(f"[Local Loop] Running: {' '.join(cmd)}")
+        logger.info(f"[Local Loop] Running: {' '.join(cmd)}")
         result = subprocess.run(
             cmd,
             cwd=cwd,
@@ -23,29 +24,29 @@ def run_pak_command(args, cwd=None):
             timeout=300
         )
         if result.returncode == 0:
-            print("[Local Loop] Pak command successful")
+            logger.info("[Local Loop] Pak command successful")
             if result.stdout:
-                print(f"[Local Loop] Output: {result.stdout}")
+                logger.info(f"[Local Loop] Output: {result.stdout}")
             return True
         else:
-            print(f"[Local Loop] Pak command failed (exit code {result.returncode})")
+            logger.info(f"[Local Loop] Pak command failed (exit code {result.returncode})")
             if result.stderr:
-                print(f"[Local Loop] Error: {result.stderr}")
+                logger.info(f"[Local Loop] Error: {result.stderr}")
             if result.stdout:
-                print(f"[Local Loop] Output: {result.stdout}")
+                logger.info(f"[Local Loop] Output: {result.stdout}")
             return False
     except subprocess.TimeoutExpired:
-        print("[Local Loop] Pak command timed out")
+        logger.info("[Local Loop] Pak command timed out")
         return False
     except FileNotFoundError:
-        print("[Local Loop] Error: 'pak' command not found. Make sure pak tool is installed.")
+        logger.info("[Local Loop] Error: 'pak' command not found. Make sure pak tool is installed.")
         return False
     except Exception as e:
-        print(f"[Local Loop] Error running pak command: {e}")
+        logger.info(f"[Local Loop] Error running pak command: {e}")
         return False
 def apply_pakdiff(diff_file, target_dir):
     """Apply pakdiff file to target directory using pak v5.0.0"""
-    print(f"[Local Loop] **APPLYING PAKDIFF FORMAT** - Using pak v5.0.0 to surgically apply {diff_file}")
+    logger.info(f"[Local Loop] **APPLYING PAKDIFF FORMAT** - Using pak v5.0.0 to surgically apply {diff_file}")
     args = ["-ad", diff_file, target_dir]
     return run_pak_command(args)
 def preview_pakdiff_changes(diff_file):
@@ -53,38 +54,38 @@ def preview_pakdiff_changes(diff_file):
     try:
         with open(diff_file, 'r') as f:
             content = f.read()
-        print("\n" + "="*60)
-        print("📄 PAKDIFF PREVIEW")
-        print("="*60)
+        logger.info("\n" + "="*60)
+        logger.info("📄 PAKDIFF PREVIEW")
+        logger.info("="*60)
         lines = content.split('\n')
         current_file = None
         in_replace_section = False
         for line in lines:
             if line.startswith('FILE:'):
                 current_file = line.replace('FILE:', '').strip()
-                print(f"\n🔧 File: {current_file}")
+                logger.info(f"\n🔧 File: {current_file}")
                 in_replace_section = False
             elif line.startswith('FIND_METHOD:'):
                 method = line.replace('FIND_METHOD:', '').strip()
                 if method:
-                    print(f"  🎯 Finding method: {method}")
+                    logger.info(f"  🎯 Finding method: {method}")
                 else:
-                    print(f"  ➕ Adding new method")
+                    logger.info(f"  ➕ Adding new method")
             elif line.startswith('SECTION:'):
                 section = line.replace('SECTION:', '').strip()
-                print(f"  📝 Section: {section}")
+                logger.info(f"  📝 Section: {section}")
             elif line.startswith('UNTIL_EXCLUDE:'):
                 until = line.replace('UNTIL_EXCLUDE:', '').strip()
                 if until:
-                    print(f"  🛑 Until: {until}")
+                    logger.info(f"  🛑 Until: {until}")
             elif line.startswith('REPLACE_WITH:'):
-                print(f"  🔄 Replacement:")
+                logger.info(f"  🔄 Replacement:")
                 in_replace_section = True
             elif in_replace_section and line.strip():
-                print(f"    {line}")
-        print("="*60)
+                logger.info(f"    {line}")
+        logger.info("="*60)
     except Exception as e:
-        print(f"[Local Loop] Error previewing pakdiff: {e}")
+        logger.info(f"[Local Loop] Error previewing pakdiff: {e}")
 def get_user_choice():
     """Get user choice for handling a pakdiff file"""
     while True:
@@ -100,7 +101,7 @@ def get_user_choice():
         elif choice in ['p', 'preview']:
             return 'preview'
         else:
-            print("❌ Invalid choice. Please enter 'a', 's', 'd', 'q', or 'p'")
+            logger.info("❌ Invalid choice. Please enter 'a', 's', 'd', 'q', or 'p'")
 def move_to_archive(diff_file, archive_type, workflow_dir):
     """Move processed diff file to appropriate archive folder"""
     archive_dir = os.path.join(workflow_dir, archive_type)
@@ -110,30 +111,30 @@ def move_to_archive(diff_file, archive_type, workflow_dir):
     archived_name = f"{timestamp}_{base_name}.diff"
     archived_path = os.path.join(archive_dir, archived_name)
     shutil.move(diff_file, archived_path)
-    print(f"[Local Loop] Moved to archive: {archive_type}/{archived_name}")
+    logger.info(f"[Local Loop] Moved to archive: {archive_type}/{archived_name}")
     return archived_path
 def local_application_loop():
     """Main local application loop - processes pakdiff files"""
     load_dotenv()
     WORKFLOW_DIR = os.environ["PAK_WORKFLOW_DIR"]
     SOURCE_DIR = os.environ["PAK_SOURCE_DIR"]
-    print(f"[Local Loop] Starting consumer loop")
-    print(f"[Local Loop] Workflow dir: {WORKFLOW_DIR}")
-    print(f"[Local Loop] Source dir: {SOURCE_DIR}")
-    print(f"[Local Loop] Watching for *.diff files...")
+    logger.info(f"[Local Loop] Starting consumer loop")
+    logger.info(f"[Local Loop] Workflow dir: {WORKFLOW_DIR}")
+    logger.info(f"[Local Loop] Source dir: {SOURCE_DIR}")
+    logger.info(f"[Local Loop] Watching for *.diff files...")
     processed_count = 0
     while True:
         try:
             diff_pattern = os.path.join(WORKFLOW_DIR, "*.diff")
             diff_files = sorted(glob.glob(diff_pattern))
             if not diff_files:
-                print(f"[Local Loop] No pakdiff files found. Checking again in 10s...")
+                logger.info(f"[Local Loop] No pakdiff files found. Checking again in 10s...")
                 time.sleep(10)
                 continue
             diff_file_to_process = diff_files[0]
             filename = os.path.basename(diff_file_to_process)
             processed_count += 1
-            print(f"\n[Local Loop] 🎯 Found pakdiff file #{processed_count}: {filename}")
+            logger.info(f"\n[Local Loop] 🎯 Found pakdiff file #{processed_count}: {filename}")
             preview_pakdiff_changes(diff_file_to_process)
             while True:
                 choice = get_user_choice()
@@ -141,35 +142,35 @@ def local_application_loop():
                     preview_pakdiff_changes(diff_file_to_process)
                     continue
                 elif choice == 'quit':
-                    print("[Local Loop] 🛑 User requested quit. Stopping...")
+                    logger.info("[Local Loop] 🛑 User requested quit. Stopping...")
                     return
                 else:
                     break
             if choice == 'apply':
-                print(f"[Local Loop] 🚀 Applying pakdiff to '{SOURCE_DIR}'...")
+                logger.info(f"[Local Loop] 🚀 Applying pakdiff to '{SOURCE_DIR}'...")
                 if apply_pakdiff(diff_file_to_process, SOURCE_DIR):
-                    print("[Local Loop] ✅ Pakdiff applied successfully!")
+                    logger.info("[Local Loop] ✅ Pakdiff applied successfully!")
                     move_to_archive(diff_file_to_process, "applied", WORKFLOW_DIR)
                 else:
-                    print("[Local Loop] ❌ Pakdiff application failed!")
+                    logger.info("[Local Loop] ❌ Pakdiff application failed!")
                     move_to_archive(diff_file_to_process, "failed", WORKFLOW_DIR)
             elif choice == 'delete':
-                print("[Local Loop] 🗑️  Deleting pakdiff file...")
+                logger.info("[Local Loop] 🗑️  Deleting pakdiff file...")
                 os.remove(diff_file_to_process)
-                print(f"[Local Loop] Deleted: {filename}")
+                logger.info(f"[Local Loop] Deleted: {filename}")
             elif choice == 'skip':
-                print("[Local Loop] ⏭️  Skipping for now...")
+                logger.info("[Local Loop] ⏭️  Skipping for now...")
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 skipped_name = f"skipped_{timestamp}_{filename}"
                 skipped_path = os.path.join(WORKFLOW_DIR, skipped_name)
                 shutil.move(diff_file_to_process, skipped_path)
-                print(f"[Local Loop] Renamed to: {skipped_name}")
+                logger.info(f"[Local Loop] Renamed to: {skipped_name}")
             time.sleep(2)
         except KeyboardInterrupt:
-            print("\n[Local Loop] 🛑 Received interrupt signal. Stopping...")
+            logger.info("\n[Local Loop] 🛑 Received interrupt signal. Stopping...")
             break
         except Exception as e:
-            print(f"[Local Loop] ❌ Unexpected error: {e}")
+            logger.info(f"[Local Loop] ❌ Unexpected error: {e}")
             time.sleep(5)
 def main():
     """Main function for testing the local loop independently"""
@@ -177,12 +178,12 @@ def main():
     if not os.environ.get("PAK_WORKFLOW_DIR"):
         test_dir = tempfile.mkdtemp(prefix="pak_local_test_")
         os.environ["PAK_WORKFLOW_DIR"] = test_dir
-        print(f"Test mode: Using {test_dir}")
+        logger.info(f"Test mode: Using {test_dir}")
     if not os.environ.get("PAK_SOURCE_DIR"):
         os.environ["PAK_SOURCE_DIR"] = os.getcwd()
     try:
         local_application_loop()
     except KeyboardInterrupt:
-        print("\nTest mode finished.")
+        logger.info("\nTest mode finished.")
 if __name__ == "__main__":
     main()

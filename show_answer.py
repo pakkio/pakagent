@@ -1,5 +1,6 @@
 import curses
 import os
+import sys
 from typing import List, Tuple, Dict, Any
 from pakagent_config import config
 
@@ -217,6 +218,9 @@ class ShowAnswerUI:
 
 def main():
     """Main function to display the three-window interface with immediate archive display."""
+    # Verify required output files exist
+    if not os.path.exists(str(config.answer_path)) or not os.path.exists(str(config.fix_path)):
+        sys.exit(1)
     def curses_main(stdscr):
         ui = ShowAnswerUI(stdscr)
         ui.load_data()

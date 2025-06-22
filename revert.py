@@ -8,28 +8,28 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from pakagent_config import config, run_pak_command
+from pakagent_config import config, run_pak_command, logger
 
 def check_archive():
     """Check if archive file exists"""
     if not config.archive_path.exists():
-        print(f"❌ Archive file {config.archive_path} not found")
-        print("Run 'python send.py' first to create the archive")
+        logger.info(f"❌ Archive file {config.archive_path} not found")
+        logger.info("Run 'python send.py' first to create the archive")
         return False
     
     try:
         size = config.archive_path.stat().st_size
-        print(f"📦 Archive found: {size:,} bytes")
+        logger.info(f"📦 Archive found: {size:,} bytes")
         return True
     except Exception as e:
-        print(f"❌ Error reading archive: {e}")
+        logger.info(f"❌ Error reading archive: {e}")
         return False
 
 def confirm_revert():
     """Ask user to confirm revert operation"""
-    print("\n⚠️  WARNING: This will restore all files to their original state!")
-    print("   Any changes made after creating the archive will be LOST.")
-    print("   Make sure you have committed important changes to git first.")
+    logger.info("\n⚠️  WARNING: This will restore all files to their original state!")
+    logger.info("   Any changes made after creating the archive will be LOST.")
+    logger.info("   Make sure you have committed important changes to git first.")
     
     while True:
         response = input("\nDo you want to continue? (yes/no): ").lower().strip()
@@ -38,25 +38,25 @@ def confirm_revert():
         elif response in ['no', 'n']:
             return False
         else:
-            print("Please enter 'yes' or 'no'")
+            logger.info("Please enter 'yes' or 'no'")
 
 def revert_files():
     """Revert files using pak -x"""
-    print("🔄 Reverting files from archive...")
+    logger.info("🔄 Reverting files from archive...")
     args = ["-x", str(config.archive_path)]
     success, output = run_pak_command(args, timeout=60)
     
     if success:
-        print("✅ Files successfully reverted to original state")
+        logger.info("✅ Files successfully reverted to original state")
         if output.strip():
-            print(f"📄 Output: {output.strip()}")
+            logger.info(f"📄 Output: {output.strip()}")
     
     return success
 
 def main():
     """Main function"""
-    print("🔙 PakAgent Revert Tool")
-    print(f"Restores files to their original state from {config.archive_path}")
+    logger.info("🔙 PakAgent Revert Tool")
+    logger.info(f"Restores files to their original state from {config.archive_path}")
     
     # Check for --force flag
     force = '--force' in sys.argv
@@ -68,22 +68,22 @@ def main():
     if config.is_git_repo:
         clean, status = config.check_git_status()
         if not clean:
-            print(f"\n⚠️  Current git status:\n{status}")
+            logger.info(f"\n⚠️  Current git status:\n{status}")
     
     # Confirm operation unless --force is used
     if not force and not confirm_revert():
-        print("❌ Revert cancelled by user")
+        logger.info("❌ Revert cancelled by user")
         sys.exit(1)
     
     if revert_files():
-        print("\n🚀 Revert completed successfully!")
-        print("💡 Next steps:")
+        logger.info("\n🚀 Revert completed successfully!")
+        logger.info("💡 Next steps:")
         if config.is_git_repo:
-            print("   git status           # Check what changed")
-            print("   git diff             # Review the changes")
-        print("   python send.py ...   # Create new archive if needed")
+            logger.info("   git status           # Check what changed")
+            logger.info("   git diff             # Review the changes")
+        logger.info("   python send.py ...   # Create new archive if needed")
     else:
-        print("❌ Revert failed")
+        logger.info("❌ Revert failed")
         sys.exit(1)
 
 if __name__ == "__main__":

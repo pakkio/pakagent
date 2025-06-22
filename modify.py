@@ -9,19 +9,19 @@ import requests
 import re
 from pathlib import Path
 from dotenv import load_dotenv
-from pakagent_config import config, check_required_files
+from pakagent_config import config, check_required_files, get_requests_session, logger, mask_sensitive_data, validate_pakdiff_content
 def read_archive():
     """Read the archive file created by send.py"""
     if not check_required_files(config.archive_path):
-        print("Run 'python send.py' first to create the archive.")
+        logger.error("Run 'python send.py' first to create the archive.")
         return None
     try:
         with open(config.archive_path, 'r') as f:
             content = f.read()
-        print(f"📄 Loaded archive: {len(content):,} characters")
+        logger.info(f"📄 Loaded archive: {len(content):,} characters")
         return content
     except Exception as e:
-        print(f"❌ Error reading archive: {e}")
+        logger.error(f"❌ Error reading archive: {e}")
         return None
 def classify_request(instructions):
     """Use LLM to classify if request is question or code modification"""
@@ -86,8 +86,8 @@ def send_to_llm(archive_content, instructions, is_question=False):
     """Send modification request to LLM"""
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        print("❌ Error: OPENROUTER_API_KEY not found in environment")
-        print("Set it in .env file or environment variables")
+        logger.error("❌ Error: OPENROUTER_API_KEY not found in environment")
+        logger.error("Set it in .env file or environment variables")
         return None
     
     if is_question:
@@ -134,8 +134,9 @@ CODEBASE:
 {archive_content}
 Please implement the requested changes now:"""
     try:
-        print("🤖 Sending request to LLM...")
-        response = requests.post(
+        session = get_requests_session()
+        logger.info("🤖 Sending request to LLM...")
+        response = session.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {api_key}",
@@ -153,10 +154,14 @@ Please implement the requested changes now:"""
             result = response.json()
             return result["choices"][0]["message"]["content"]
         else:
-            print(f"❌ API error {response.status_code}: {response.text}")
+            # Mask sensitive data in API error response
+            masked_response = mask_sensitive_data(response.text)
+            logger.error(f"❌ API error {response.status_code}: {masked_response}")
             return None
     except Exception as e:
-        print(f"❌ Error calling LLM API: {e}")
+        # Mask sensitive data in exception messages
+        masked_error = mask_sensitive_data(str(e))
+        logger.error(f"❌ Error calling LLM API: {masked_error}")
         return None
 def parse_llm_response(response_text, is_question=False):
     """Parse LLM response into answer and pakdiff components"""
@@ -178,88 +183,96 @@ def parse_llm_response(response_text, is_question=False):
     pakdiff_matches = re.findall(pakdiff_pattern, implementation_section, re.DOTALL)
     if pakdiff_matches:
         pakdiff_content = pakdiff_matches[0].strip()
-        print("✅ Successfully extracted pakdiff from response")
+    elif 'PAKDIFF_START' in implementation_section and 'PAKDIFF_END' in implementation_section:
+        blocks = re.findall(r'PAKDIFF_START\s*(.*?)\s*PAKDIFF_END', implementation_section, re.DOTALL)
+        pakdiff_content = '\n'.join(b.strip() for b in blocks if b.strip())
     else:
-        print("⚠️  No pakdiff code block found, using full implementation section")
-        pakdiff_content = implementation_section.strip()
+        pakdiff_content = ''
     return analysis, pakdiff_content
 def save_outputs(answer_text, pakdiff_text):
-    """Save answer and pakdiff to session files"""
+    """Save answer and pakdiff to session files with validation"""
     try:
+        # Save answer file
         with open(config.answer_path, "w") as f:
             f.write(answer_text)
-        print(f"✅ Saved analysis to {config.answer_path}")
+        logger.info(f"✅ Saved analysis to {config.answer_path}")
+        
+        # Validate pakdiff before saving
+        if pakdiff_text.strip():
+            try:
+                validate_pakdiff_content(pakdiff_text)
+                logger.info("✅ Pakdiff content validated successfully")
+            except ValueError as e:
+                logger.warning(f"⚠️  Pakdiff validation warning: {e}")
+                # Continue saving but warn user
+        
+        # Save pakdiff file
         with open(config.fix_path, "w") as f:
             f.write(pakdiff_text)
-        print(f"✅ Saved pakdiff to {config.fix_path}")
+        logger.info(f"✅ Saved pakdiff to {config.fix_path}")
         return True
     except Exception as e:
-        print(f"❌ Error saving outputs: {e}")
+        masked_error = mask_sensitive_data(str(e))
+        logger.error(f"❌ Error saving outputs: {masked_error}")
         return False
-def main():
-    """Main function"""
-    if len(sys.argv) < 2:
-        print("Usage: python modify.py 'your modification request'")
-        print("Examples:")
-        print("  python modify.py 'add logging to all methods'")
-        print("  python modify.py 'implement error handling'")
-        print("  python modify.py 'add input validation'")
-        print("  python modify.py 'refactor code for better readability'")
-        return
-    load_dotenv()
-    instruction = " ".join(sys.argv[1:])
-    print(f"🎯 Task: {instruction}")
     
-    # Debug API configuration
+def call_llm(instructions, archive_content):
+    """Send a simple LLM request for content without classification logic."""
     api_key = os.environ.get("OPENROUTER_API_KEY")
-    model = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3-haiku:beta")
-    max_tokens = os.environ.get("OPENROUTER_MAX_TOKENS", "4000")
-    temperature = os.environ.get("OPENROUTER_TEMPERATURE", "0.1")
-    
-    if api_key:
-        masked_key = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "***masked***"
-        print(f"🔑 API Key: {masked_key}")
-        print(f"🤖 Model: {model}")
-        print(f"🎛️  Max Tokens: {max_tokens}, Temperature: {temperature}")
-        print("💡 To change model/settings, edit .env file:")
-        print("   OPENROUTER_MODEL=anthropic/claude-3-sonnet:beta")
-        print("   OPENROUTER_MAX_TOKENS=8000")
-        print("   OPENROUTER_TEMPERATURE=0.2")
-    else:
-        print("❌ OPENROUTER_API_KEY not found")
-        print("💡 Create .env file with:")
-        print("   OPENROUTER_API_KEY=your_key_here")
-        print("   OPENROUTER_MODEL=anthropic/claude-3-haiku:beta")
-        print("   OPENROUTER_MAX_TOKENS=4000")
-        print("   OPENROUTER_TEMPERATURE=0.1")
-    
-    # Use LLM to classify the request
-    print("🔍 Classifying request type...")
+    if not api_key:
+        logger.error("❌ Error: OPENROUTER_API_KEY not found in environment")
+        return None
+    # Prepare a minimal prompt combining instructions and archive
+    prompt = f"TASK: {instructions}\nCODEBASE:\n{archive_content}"
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3-haiku:beta"),
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": int(os.environ.get("OPENROUTER_MAX_TOKENS", "4000")),
+                "temperature": float(os.environ.get("OPENROUTER_TEMPERATURE", "0.1"))
+            },
+            timeout=120
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data.get("choices", [])[0].get("message", {}).get("content")
+    except Exception:
+        return None
+
+def process_instructions(instruction):
+    """High-level processing: classify, call LLM, parse, and save outputs."""
+    # Classify request
     is_question = classify_request(instruction)
-    print(f"📋 Request type: {'Text response' if is_question else 'Code modification'}")
-    
+    # Load code archive
     archive_content = read_archive()
-    if not archive_content:
-        sys.exit(1)
-    response = send_to_llm(archive_content, instruction, is_question)
+    if archive_content is None:
+        return False
+    # Get LLM response
+    response = call_llm(instruction, archive_content)
     if not response:
-        print("❌ Failed to get response from LLM")
-        sys.exit(1)
+        return False
+    # Parse response into analysis and pakdiff
     answer_text, pakdiff_text = parse_llm_response(response, is_question)
-    if not answer_text:
-        print("❌ Failed to parse LLM response properly")
-        print("Raw response:")
-        print(response)
-        sys.exit(1)
-    
-    # For text responses, pakdiff_text will be empty
-    if is_question and not pakdiff_text:
-        print("ℹ️  Text response detected - no pakdiff generated")
-    if save_outputs(answer_text, pakdiff_text):
-        print("\n🚀 Success! Next steps:")
-        print("  python show_answer.py  # Review the changes")
-        print("  python apply.py        # Apply the changes")
+    # Save to files
+    return save_outputs(answer_text, pakdiff_text)
+def main():
+    """Main entrypoint for modify CLI."""
+    # Determine instruction: CLI args or interactive input
+    if len(sys.argv) < 2:
+        try:
+            instruction = input("Enter modification request: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            return
     else:
-        sys.exit(1)
+        instruction = " ".join(sys.argv[1:])
+    # Delegate to process_instructions
+    process_instructions(instruction)
+
 if __name__ == "__main__":
     main()
