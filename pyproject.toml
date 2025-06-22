@@ -11,6 +11,18 @@ python = "3.12.3"
 python-dotenv = "^1.1.0"
 requests = "^2.32.4"
 
+[tool.poetry.dev-dependencies]
+pytest = "^7.0"
+flake8 = "^6.1.0"
+black = "^24.1.0"
+
+[tool.poetry.scripts]
+pakagent-send = "send:main"
+pakagent-modify = "modify:main"
+pakagent-show-answer = "show_answer:main"
+pakagent-apply = "apply:main"
+pakagent-revert = "revert:main"
+
 
 [build-system]
 requires = ["poetry-core"]
